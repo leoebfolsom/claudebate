@@ -253,8 +253,8 @@ INSTRUCTIONS:
 Analyze both sides' arguments and declare a winner. Your response should include:
 1. **Summary**: Brief overview of each side's key arguments (2-3 sentences each)
 2. **Strengths & Weaknesses**: What each side did well and where they fell short
-3. **Winner**: Clearly state PRO or CON as the winner
-4. **Reasoning**: Explain why the winner made the more compelling case (2-3 sentences)
+3. **Winner**: State "Session A" or "Session B" as the winner
+4. **Conclusion**: State the winning position as a clear, standalone statement (e.g., "Conclusion: Tabs are superior to spaces for indentation.")
 
 Be fair and objective. Judge based on argument quality, not personal opinion on the topic.
 EOF
