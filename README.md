@@ -12,15 +12,20 @@ Automated debates between two Claude Code sessions using file-based communicatio
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--rounds N` | Maximum number of rounds (0 = unlimited) | 10 |
-| `--time Nm` | Time limit in minutes (e.g., `5m`, `300s`) | 5m |
+| `--rounds N` | Maximum number of rounds | 10 |
+| `--rounds false` | No round limit | |
+| `--time Nm` | Time limit (e.g., `5m`, `300s`) | 5m |
+| `--time false` | No time limit | |
 
 ```bash
 # Custom limits
 ./orchestrate.sh "Tabs vs spaces" --rounds 5 --time 3m
 
-# Time limit only
-./orchestrate.sh "Is OOP overrated?" --time 10m --rounds 0
+# No round limit (debate runs until time expires)
+./orchestrate.sh "Is OOP overrated?" --time 10m --rounds false
+
+# No time limit (debate runs until rounds complete)
+./orchestrate.sh "Vim vs Emacs" --rounds 8 --time false
 ```
 
 ## How It Works

@@ -14,13 +14,18 @@ TOPIC=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         --rounds)
-            MAX_ROUNDS="$2"
+            if [[ "$2" == "false" || "$2" == "none" ]]; then
+                MAX_ROUNDS=0
+            else
+                MAX_ROUNDS="$2"
+            fi
             shift 2
             ;;
         --time)
-            # Parse time like "5m" or "300s" or "300"
             TIME_ARG="$2"
-            if [[ "$TIME_ARG" =~ ^([0-9]+)m$ ]]; then
+            if [[ "$TIME_ARG" == "false" || "$TIME_ARG" == "none" ]]; then
+                TIME_LIMIT_SECONDS=0
+            elif [[ "$TIME_ARG" =~ ^([0-9]+)m$ ]]; then
                 TIME_LIMIT_SECONDS=$((${BASH_REMATCH[1]} * 60))
             elif [[ "$TIME_ARG" =~ ^([0-9]+)s$ ]]; then
                 TIME_LIMIT_SECONDS=${BASH_REMATCH[1]}
@@ -55,7 +60,9 @@ CONTROL="$SCRIPT_DIR/control.txt"
 # Initialize files
 echo "=== DEBATE: $TOPIC ===" > "$TRANSCRIPT"
 echo "Started: $(date)" >> "$TRANSCRIPT"
-echo "Limits: $MAX_ROUNDS rounds, $((TIME_LIMIT_SECONDS / 60))m $((TIME_LIMIT_SECONDS % 60))s" >> "$TRANSCRIPT"
+ROUNDS_DESC=$([[ $MAX_ROUNDS -gt 0 ]] && echo "$MAX_ROUNDS rounds" || echo "no round limit")
+TIME_DESC=$([[ $TIME_LIMIT_SECONDS -gt 0 ]] && echo "$((TIME_LIMIT_SECONDS / 60))m $((TIME_LIMIT_SECONDS % 60))s" || echo "no time limit")
+echo "Limits: $ROUNDS_DESC, $TIME_DESC" >> "$TRANSCRIPT"
 echo "==========================================" >> "$TRANSCRIPT"
 echo "" >> "$TRANSCRIPT"
 
@@ -113,8 +120,11 @@ build_prompt() {
 
     local now=$(date +%s)
     local elapsed=$((now - START_TIME))
-    local remaining=$((TIME_LIMIT_SECONDS - elapsed))
-    if [[ $remaining -lt 0 ]]; then remaining=0; fi
+    local remaining=0
+    if [[ $TIME_LIMIT_SECONDS -gt 0 ]]; then
+        remaining=$((TIME_LIMIT_SECONDS - elapsed))
+        if [[ $remaining -lt 0 ]]; then remaining=0; fi
+    fi
 
     local current_round=$(( (TURN / 2) + 1 ))
     local turns_remaining=0
@@ -129,12 +139,14 @@ build_prompt() {
     if [[ $MAX_ROUNDS -gt 0 ]]; then
         status_line="$status_line of $((MAX_ROUNDS * 2))"
     fi
-    status_line="$status_line | $(format_time $remaining) of $(format_time $TIME_LIMIT_SECONDS) remaining"
+    if [[ $TIME_LIMIT_SECONDS -gt 0 ]]; then
+        status_line="$status_line | $(format_time $remaining) of $(format_time $TIME_LIMIT_SECONDS) remaining"
+    fi
 
     local pacing_hint=""
     if [[ $MAX_ROUNDS -gt 0 ]] && [[ $turns_remaining -le 2 ]]; then
         pacing_hint="- FINAL TURNS: Work toward synthesis or provide a clear summary of your position"
-    elif [[ $remaining -lt 60 ]]; then
+    elif [[ $TIME_LIMIT_SECONDS -gt 0 ]] && [[ $remaining -lt 60 ]]; then
         pacing_hint="- TIME RUNNING LOW: Summarize your strongest points"
     fi
 
@@ -197,7 +209,7 @@ run_turn() {
 }
 
 echo "Starting debate: $TOPIC"
-echo "Limits: $MAX_ROUNDS rounds, $(format_time $TIME_LIMIT_SECONDS)"
+echo "Limits: $ROUNDS_DESC, $TIME_DESC"
 echo "To stop early: echo 'STOP' > $CONTROL"
 echo ""
 
