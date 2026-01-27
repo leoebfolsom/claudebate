@@ -5,7 +5,7 @@ Automated debates between two Claude Code sessions using file-based communicatio
 ## Quick Start
 
 ```bash
-./orchestrate.sh "Should AI systems have emotions?"
+./debate.sh "Should AI systems have emotions?"
 ```
 
 ## Options
@@ -19,13 +19,13 @@ Automated debates between two Claude Code sessions using file-based communicatio
 
 ```bash
 # Custom limits
-./orchestrate.sh "Tabs vs spaces" --rounds 5 --time 3m
+./debate.sh "Tabs vs spaces" --rounds 5 --time 3m
 
 # No round limit (debate runs until time expires)
-./orchestrate.sh "Is OOP overrated?" --time 10m --rounds false
+./debate.sh "Is OOP overrated?" --time 10m --rounds false
 
 # No time limit (debate runs until rounds complete)
-./orchestrate.sh "Vim vs Emacs" --rounds 8 --time false
+./debate.sh "Vim vs Emacs" --rounds 8 --time false
 ```
 
 ## How It Works
