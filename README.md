@@ -55,9 +55,6 @@ As for vanilla's popularity being evidence of superiority—correlation isn't ca
 ./debate.sh "Are we in an AI bubble?" --rounds 8 --time false
 ```
 
-<img width="939" height="813" alt="Screenshot 2026-01-27 at 14 52 56" src="https://github.com/user-attachments/assets/58a36f7a-0857-47b3-9a76-5874e5f2b74a" />
-
-
 ## How It Works
 
 1. The script invokes `claude -p` for each turn, alternating between PRO and CON positions
@@ -79,3 +76,51 @@ echo "STOP" > control.txt
 
 - `transcript_YYYY-MM-DD_HHMMSS.txt` - Full debate history (new file each run)
 - `control.txt` - Write "STOP" here to end early
+
+```
+>>> Judge evaluating the debate...
+
+# Debate Judgment: What Ice Cream Flavor Really Hits the Spot?
+
+## Summary
+
+**Session A (Vanilla):** Argued that vanilla's versatility, sustained pleasurability, and universal appeal make it the flavor that truly satisfies. They positioned vanilla as a sophisticated choice whose subtlety rewards attention, whose popularity reflects genuine preference rather than default selection, and whose ability to be enjoyed throughout an entire serving without fatigue represents culinary excellence rather than blandness.
+
+**Session B (Bold Flavors):** Argued that vanilla's need for accompaniments and its muted profile make it a "blank canvas" rather than a complete experience. They contended that bold flavors like salted caramel deliver immediate, decisive satisfaction, that vanilla's popularity reflects conflict avoidance rather than passionate preference, and that appropriate satiation (even leaving food unfinished) indicates a flavor has truly "hit the spot."
+
+## Strengths & Weaknesses
+
+**Session A Strengths:**
+- Effectively reframed vanilla's consistency as a feature ("sustained pleasure without crash")
+- Made a compelling argument about abandoned bowls being culinary failure, not success
+- Strong closing argument about what flavor you'd "live with" versus experiment with
+- Successfully turned Session B's chemistry argument back on them (vanilla as "essential architecture")
+
+**Session A Weaknesses:**
+- The "best-selling equals best" argument was vulnerable and never fully recovered from Session B's critique
+- Could have more directly addressed the "blank canvas" charge with examples of standalone vanilla excellence
+
+**Session B Strengths:**
+- Strong opening that reframed versatility as dependency
+- Clever "symphony vs. solo violin" analogy
+- Incisive distinction between "least objectionable" and "most satisfying"
+- Good use of the premium shop/individual choice argument
+
+**Session B Weaknesses:**
+- The "half-finished bowl as success" argument was counterintuitive and poorly defended
+- Never named a single definitive flavor champion (salted caramel? chocolate peanut butter? butter pecan?)—this scattered focus weakened the position
+- The "completion without regret" attack backfired; comparing ice cream to dental procedures and airport food felt more like rhetoric than substance
+
+## Winner
+
+**Session A**
+
+## Conclusion
+
+**Vanilla is the ice cream flavor that really hits the spot**—its sustained pleasurability, universal appeal, and status as the foundational flavor upon which others depend demonstrate that true satisfaction comes from consistent excellence rather than intense peaks followed by flavor fatigue.
+
+
+Debate complete! Transcript saved to: /Users/leoebfolsom/claude/claudebate/transcript_2026-01-27_145526.txt
+Total turns: 7
+leoebfolsom@Leos-MacBook-Pro claudebate %
+```
