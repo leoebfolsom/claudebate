@@ -48,7 +48,8 @@ fi
 
 # Setup
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TRANSCRIPT="$SCRIPT_DIR/transcript.txt"
+TIMESTAMP=$(date +%Y-%m-%d_%H%M%S)
+TRANSCRIPT="$SCRIPT_DIR/transcript_${TIMESTAMP}.txt"
 CONTROL="$SCRIPT_DIR/control.txt"
 
 # Initialize files

@@ -41,5 +41,5 @@ echo "STOP" > control.txt
 
 ## Output Files
 
-- `transcript.txt` - Full debate history (regenerated each run)
+- `transcript_YYYY-MM-DD_HHMMSS.txt` - Full debate history (new file each run)
 - `control.txt` - Write "STOP" here to end early
