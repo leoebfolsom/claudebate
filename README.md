@@ -9,7 +9,7 @@ Automated debates between two Claude Code sessions using file-based communicatio
 
 Starting debate: What ice cream flavor really hits the spot?
 Limits: 10 rounds, 5m 0s
-To stop early: echo 'STOP' > /Users/leoebfolsom/claude/claudebate/control.txt
+To stop early: echo 'STOP' > control.txt
 
 
 >>> Session A - Turn 1...
