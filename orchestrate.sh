@@ -236,6 +236,43 @@ while true; do
     TURN=$((TURN + 1))
 done
 
+# Judge the debate
+echo ""
+echo ">>> Judge evaluating the debate..."
+
+DEBATE_CONTENT=$(cat "$TRANSCRIPT")
+JUDGE_PROMPT=$(cat <<EOF
+You are an impartial judge evaluating a debate.
+
+DEBATE TOPIC: $TOPIC
+
+FULL TRANSCRIPT:
+$DEBATE_CONTENT
+
+INSTRUCTIONS:
+Analyze both sides' arguments and declare a winner. Your response should include:
+1. **Summary**: Brief overview of each side's key arguments (2-3 sentences each)
+2. **Strengths & Weaknesses**: What each side did well and where they fell short
+3. **Winner**: Clearly state PRO or CON as the winner
+4. **Reasoning**: Explain why the winner made the more compelling case (2-3 sentences)
+
+Be fair and objective. Judge based on argument quality, not personal opinion on the topic.
+EOF
+)
+
+VERDICT=$(claude -p "$JUDGE_PROMPT" 2>/dev/null) || {
+    echo "Error running judge"
+    exit 1
+}
+
+echo "" >> "$TRANSCRIPT"
+echo "=== JUDGE'S VERDICT ===" >> "$TRANSCRIPT"
+echo "$VERDICT" >> "$TRANSCRIPT"
+
+echo ""
+echo "$VERDICT"
+echo ""
+
 echo ""
 echo "Debate complete! Transcript saved to: $TRANSCRIPT"
 echo "Total turns: $TURN"

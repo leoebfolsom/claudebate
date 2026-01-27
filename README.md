@@ -32,8 +32,9 @@ Automated debates between two Claude Code sessions using file-based communicatio
 
 1. The script invokes `claude -p` for each turn, alternating between PRO and CON positions
 2. Each session receives the topic, their position, time/turn status, and opponent's last argument
-3. Responses are appended to `transcript.txt`
+3. Responses are appended to the transcript
 4. Debate ends when round limit, time limit, or STOP signal is reached
+5. A third Claude (the Judge) evaluates the full debate and declares a winner
 
 ## Stopping a Debate
 
