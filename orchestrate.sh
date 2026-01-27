@@ -114,8 +114,8 @@ check_stop_conditions() {
 }
 
 build_prompt() {
-    local position="$1"
-    local position_desc="$2"
+    local session="$1"
+    local is_first="$2"
     local opponent_arg="$3"
 
     local now=$(date +%s)
@@ -130,7 +130,7 @@ build_prompt() {
     local turns_remaining=0
     if [[ $MAX_ROUNDS -gt 0 ]]; then
         turns_remaining=$(( (MAX_ROUNDS - current_round) * 2 + 1 ))
-        if [[ "$position" == "CON" ]]; then
+        if [[ "$is_first" == "false" ]]; then
             turns_remaining=$((turns_remaining - 1))
         fi
     fi
@@ -150,24 +150,25 @@ build_prompt() {
         pacing_hint="- TIME RUNNING LOW: Summarize your strongest points"
     fi
 
-    local opponent_section=""
+    local role_section=""
     if [[ -n "$opponent_arg" ]]; then
-        opponent_section="OPPONENT'S LAST ARGUMENT:
+        role_section="You are $session. Argue AGAINST your opponent's position.
+
+OPPONENT'S LAST ARGUMENT:
 $opponent_arg
 
 "
     else
-        opponent_section="This is the opening turn - present your initial argument.
+        role_section="You are $session. Take a clear position on the topic and argue for it.
 
 "
     fi
 
     cat <<EOF
 DEBATE TOPIC: $TOPIC
-YOUR POSITION: $position ($position_desc)
 STATUS: $status_line
 
-${opponent_section}INSTRUCTIONS:
+${role_section}INSTRUCTIONS:
 - Respond directly to your opponent's points (if any)
 - Keep response focused (2-3 paragraphs)
 - Be persuasive but fair
@@ -177,15 +178,14 @@ EOF
 
 run_turn() {
     local session="$1"
-    local position="$2"
-    local position_desc="$3"
-    local opponent_arg="$4"
+    local is_first="$2"
+    local opponent_arg="$3"
 
     local prompt
-    prompt=$(build_prompt "$position" "$position_desc" "$opponent_arg")
+    prompt=$(build_prompt "$session" "$is_first" "$opponent_arg")
 
     echo ""
-    echo ">>> $session ($position) - Turn $((TURN + 1))..."
+    echo ">>> $session - Turn $((TURN + 1))..."
 
     # Run claude and capture output
     local response
@@ -195,7 +195,7 @@ run_turn() {
     }
 
     # Append to transcript
-    echo "--- $session ($position) - Turn $((TURN + 1)) ---" >> "$TRANSCRIPT"
+    echo "--- $session - Turn $((TURN + 1)) ---" >> "$TRANSCRIPT"
     echo "$response" >> "$TRANSCRIPT"
     echo "" >> "$TRANSCRIPT"
 
@@ -220,8 +220,8 @@ while true; do
         break
     fi
 
-    # Session A (PRO) turn
-    run_turn "Session A" "PRO" "argue in favor" "$LAST_B"
+    # Session A turn
+    run_turn "Session A" "true" "$LAST_B"
     LAST_A="$LAST_RESPONSE"
     TURN=$((TURN + 1))
 
@@ -230,8 +230,8 @@ while true; do
         break
     fi
 
-    # Session B (CON) turn
-    run_turn "Session B" "CON" "argue against" "$LAST_A"
+    # Session B turn
+    run_turn "Session B" "false" "$LAST_A"
     LAST_B="$LAST_RESPONSE"
     TURN=$((TURN + 1))
 done
