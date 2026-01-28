@@ -285,6 +285,80 @@ echo ""
 echo "$VERDICT"
 echo ""
 
+# Export functions
+export_to_md() {
+    local transcript_path="$1"
+    local md_path="${transcript_path%.txt}.md"
+
+    # Read the transcript
+    local content
+    content=$(cat "$transcript_path")
+
+    # Extract metadata from the header
+    local topic
+    topic=$(echo "$content" | grep -m1 "^=== DEBATE:" | sed 's/=== DEBATE: //;s/ ===//')
+
+    local started
+    started=$(echo "$content" | grep -m1 "^Started:" | sed 's/Started: //')
+
+    local limits
+    limits=$(echo "$content" | grep -m1 "^Limits:" | sed 's/Limits: //')
+
+    # Count total turns by counting "--- Session" lines
+    local total_turns
+    total_turns=$(echo "$content" | grep -c "^--- Session")
+
+    # Start writing the markdown file
+    {
+        echo "# $topic"
+        echo ""
+        echo "**Date:** $started"
+        echo ""
+        echo "**Limits:** $limits"
+        echo ""
+        echo "**Total Turns:** $total_turns"
+        echo ""
+        echo "---"
+        echo ""
+
+        # Process the transcript content
+        # We'll use awk to handle the different sections
+        echo "$content" | awk '
+            /^--- Session/ {
+                # Extract session and turn info
+                gsub(/^--- /, "")
+                gsub(/ ---$/, "")
+                print "## " $0
+                print ""
+                next
+            }
+            /^=== JUDGE'\''S VERDICT ===/ {
+                print "## Judge'\''s Verdict"
+                print ""
+                next
+            }
+            /^=== DEBATE:/ || /^Started:/ || /^Limits:/ || /^=+$/ {
+                # Skip header lines we already processed
+                next
+            }
+            /^=== DEBATE ENDED/ {
+                # Skip the ended line
+                next
+            }
+            {
+                # Print regular content as blockquotes (if not empty)
+                if (NF > 0) {
+                    print "> " $0
+                } else {
+                    print ""
+                }
+            }
+        '
+    } > "$md_path"
+
+    echo "$md_path"
+}
+
 echo ""
 echo "Debate complete! Transcript saved to: $TRANSCRIPT"
 echo "Total turns: $TURN"
