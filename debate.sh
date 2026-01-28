@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Claude Code Debate System
-# Usage: ./orchestrate.sh "topic" [--rounds N] [--time Nm]
+# Usage: ./debate.sh "topic" [--rounds N] [--time Nm] [--export FORMAT]
 
 set -e
 
@@ -9,6 +9,7 @@ set -e
 MAX_ROUNDS=10
 TIME_LIMIT_SECONDS=300  # 5 minutes
 TOPIC=""
+EXPORT_FORMAT=""  # Export format(s): md, html, or both (comma-separated)
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -34,6 +35,10 @@ while [[ $# -gt 0 ]]; do
             fi
             shift 2
             ;;
+        --export)
+            EXPORT_FORMAT="$2"
+            shift 2
+            ;;
         -*)
             echo "Unknown option: $1"
             exit 1
@@ -46,8 +51,15 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$TOPIC" ]]; then
-    echo "Usage: $0 \"debate topic\" [--rounds N] [--time Nm]"
-    echo "Example: $0 \"Should AI have emotions?\" --rounds 5 --time 3m"
+    echo "Usage: $0 \"debate topic\" [--rounds N] [--time Nm] [--export FORMAT]"
+    echo ""
+    echo "Options:"
+    echo "  --rounds N       Maximum number of rounds (default: 10)"
+    echo "  --time Nm        Time limit in minutes (default: 5m)"
+    echo "  --export FORMAT  Export transcript after debate ends"
+    echo "                   FORMAT: md, html, or both (e.g., --export md,html)"
+    echo ""
+    echo "Example: $0 \"Should AI have emotions?\" --rounds 5 --time 3m --export md,html"
     exit 1
 fi
 
