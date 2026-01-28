@@ -2,6 +2,10 @@
 
 Automated debates between two Claude Code sessions using file-based communication.
 
+## Prerequisites
+
+- [Claude Code](https://claude.ai/code) installed and authenticated
+
 ## Quick Start
 
 ```bash
@@ -57,8 +61,8 @@ As for vanilla's popularity being evidence of superiority—correlation isn't ca
 
 ## How It Works
 
-1. The script invokes `claude -p` for each turn, alternating between PRO and CON positions
-2. Each session receives the topic, their position, time/turn status, and opponent's last argument
+1. The script invokes `claude -p` for each turn, alternating between Session A and Session B
+2. Each session receives the topic, time/turn status, and opponent's last argument
 3. Responses are appended to the transcript
 4. Debate ends when round limit, time limit, or STOP signal is reached
 5. A third Claude (the Judge) evaluates the full debate and declares a winner
