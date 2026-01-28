@@ -571,6 +571,25 @@ HTMLHEAD
     echo "$html_path"
 }
 
+# Auto-export if --export flag was set
+if [[ -n "$EXPORT_FORMAT" ]]; then
+    echo ">>> Exporting transcript..."
+
+    # Check for md export
+    if [[ "$EXPORT_FORMAT" == "md" || "$EXPORT_FORMAT" == *"md"* ]]; then
+        md_file=$(export_to_md "$TRANSCRIPT")
+        echo "Exported to Markdown: $md_file"
+    fi
+
+    # Check for html export
+    if [[ "$EXPORT_FORMAT" == "html" || "$EXPORT_FORMAT" == *"html"* ]]; then
+        html_file=$(export_to_html "$TRANSCRIPT")
+        echo "Exported to HTML: $html_file"
+    fi
+
+    echo ""
+fi
+
 echo ""
 echo "Debate complete! Transcript saved to: $TRANSCRIPT"
 echo "Total turns: $TURN"
