@@ -1,6 +1,6 @@
-# Claude Code Debate System
+# claudebate
 
-Automated debates between two Claude Code sessions using file-based communication.
+Automated debates between two Claude Code sessions using file-based communication, with a third Claude Code session as the Judge.
 
 ## Prerequisites
 
