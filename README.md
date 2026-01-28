@@ -32,6 +32,8 @@ echo "STOP" > control.txt
 ## Output Files
 
 - `transcript_YYYY-MM-DD_HHMMSS.txt` - Full debate history (new file each run)
+- `transcript_YYYY-MM-DD_HHMMSS.md` - Markdown export (if `--export` used)
+- `transcript_YYYY-MM-DD_HHMMSS.html` - Styled HTML export (if `--export` used)
 - `control.txt` - Write "STOP" here to end early
 
 ## Options
@@ -42,6 +44,7 @@ echo "STOP" > control.txt
 | `--rounds false` | No round limit | |
 | `--time Nm` | Time limit (e.g., `5m`, `300s`) | 5m |
 | `--time false` | No time limit | |
+| `--export FORMAT` | Export transcript when done (`md`, `html`, or `md,html`) | none |
 
 ```bash
 # Custom limits
@@ -52,6 +55,24 @@ echo "STOP" > control.txt
 
 # No time limit (debate runs until rounds complete)
 ./debate.sh "Are we in an AI bubble?" --rounds 8 --time false
+
+# Export to Markdown and HTML when debate ends
+./debate.sh "Tabs vs spaces" --export md,html
+```
+
+## Exporting Existing Transcripts
+
+Use `export.sh` to export transcripts after a debate has completed:
+
+```bash
+# Export to both formats
+./export.sh transcript_2026-01-27_145526.txt --format both
+
+# Export to Markdown only
+./export.sh transcript_2026-01-27_145526.txt --format md
+
+# Export to HTML only
+./export.sh transcript_2026-01-27_145526.txt --format html
 ```
 
 ## The Debate
