@@ -231,6 +231,22 @@ setup_sandbox() {
 # Track sandbox directories for cleanup
 SANDBOX_DIRS=()
 
+# Track implementation diffs for ralph mode
+IMPL_DIFF_A=""
+IMPL_DIFF_B=""
+
+# Cleanup sandbox directories on exit
+cleanup_sandboxes() {
+    for sandbox in "${SANDBOX_DIRS[@]}"; do
+        if [[ -d "$sandbox" ]]; then
+            rm -rf "$sandbox" 2>/dev/null || true
+        fi
+    done
+}
+
+# Register cleanup trap
+trap cleanup_sandboxes EXIT
+
 # Implement an approach in a sandbox using Ralph or Claude
 # Arguments: $1 = sandbox path, $2 = approach description, $3 = session name (A/B)
 # Returns: git diff via IMPL_DIFF variable
@@ -426,6 +442,57 @@ run_turn() {
     LAST_RESPONSE="$response"
 }
 
+# Ralph mode: Get approach proposal, set up sandbox, implement, capture diff
+# Arguments: $1 = session name (A/B), $2 = is_first turn, $3 = opponent's last response
+# Sets: LAST_RESPONSE (approach), IMPL_DIFF_A or IMPL_DIFF_B
+run_ralph_turn() {
+    local session="$1"
+    local is_first="$2"
+    local opponent_arg="$3"
+
+    # First, get the approach proposal using normal turn
+    run_turn "$session" "$is_first" "$opponent_arg"
+    local approach="$LAST_RESPONSE"
+
+    echo ""
+    echo ">>> $session - Implementing approach..."
+
+    # Set up sandbox for this debater
+    local sandbox_path
+    sandbox_path=$(setup_sandbox "$session")
+    SANDBOX_DIRS+=("$sandbox_path")
+
+    # Implement the approach
+    local impl_diff
+    impl_diff=$(implement_approach "$sandbox_path" "$approach" "$session")
+
+    # Store diff in appropriate variable
+    if [[ "$session" == "Session A" ]]; then
+        IMPL_DIFF_A="$impl_diff"
+    else
+        IMPL_DIFF_B="$impl_diff"
+    fi
+
+    # Log implementation to transcript
+    echo "" >> "$TRANSCRIPT"
+    echo "--- $session - Implementation Diff ---" >> "$TRANSCRIPT"
+    if [[ -n "$impl_diff" && "$impl_diff" != "No changes captured" ]]; then
+        echo "$impl_diff" >> "$TRANSCRIPT"
+    else
+        echo "(No implementation changes captured)" >> "$TRANSCRIPT"
+    fi
+    echo "" >> "$TRANSCRIPT"
+
+    # Display brief status
+    if [[ -n "$impl_diff" && "$impl_diff" != "No changes captured" ]]; then
+        local lines
+        lines=$(echo "$impl_diff" | wc -l | tr -d ' ')
+        echo ">>> $session - Implementation complete ($lines lines of diff)"
+    else
+        echo ">>> $session - Implementation complete (no changes)"
+    fi
+}
+
 echo "Starting code debate: $TASK"
 echo "Limits: $ROUNDS_DESC, $TIME_DESC"
 if [[ -n "$CONTEXT_PATH" ]]; then
@@ -442,7 +509,11 @@ while true; do
     fi
 
     # Session A turn
-    run_turn "Session A" "true" "$LAST_B"
+    if [[ "$RALPH_MODE" == true ]]; then
+        run_ralph_turn "Session A" "true" "$LAST_B"
+    else
+        run_turn "Session A" "true" "$LAST_B"
+    fi
     LAST_A="$LAST_RESPONSE"
     TURN=$((TURN + 1))
 
@@ -452,7 +523,11 @@ while true; do
     fi
 
     # Session B turn
-    run_turn "Session B" "false" "$LAST_A"
+    if [[ "$RALPH_MODE" == true ]]; then
+        run_ralph_turn "Session B" "false" "$LAST_A"
+    else
+        run_turn "Session B" "false" "$LAST_A"
+    fi
     LAST_B="$LAST_RESPONSE"
     TURN=$((TURN + 1))
 done
