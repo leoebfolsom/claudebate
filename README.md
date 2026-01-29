@@ -98,6 +98,7 @@ Use `code-debate.sh` to explore implementation approaches for software tasks thr
 | `--time Nm` | Time limit (e.g., `5m`, `300s`) | 5m |
 | `--export FORMAT` | Export transcript (`md`, `html`, or `md,html`) | none |
 | `--context PATH` | File or directory for codebase context | none |
+| `--ralph` | Enable implementation mode (see below) | off |
 
 ### The --context Flag
 
@@ -123,6 +124,49 @@ When to skip `--context`:
 - Greenfield projects or standalone utilities
 - General design discussions not tied to specific code
 - When you want approaches unconstrained by current implementation
+
+### The --ralph Flag (Implementation Mode)
+
+Standard code debates compare *proposals* - theoretical approaches that debaters describe and defend. With `--ralph`, debates compare *actual implementations* - each debater's approach is implemented in a sandboxed copy of your codebase, and the judge evaluates real code diffs.
+
+```bash
+# Standard mode: debaters propose approaches, judge evaluates proposals
+./code-debate.sh "Add input validation to the form" --context ./src/forms
+
+# Ralph mode: debaters implement approaches, judge evaluates actual code
+./code-debate.sh "Add input validation to the form" --context ./src/forms --ralph
+```
+
+**How it works:**
+
+1. Each debater proposes an approach (same as standard mode)
+2. A sandboxed copy of your codebase is created for each debater
+3. The approach is actually implemented using Claude (or Ralph if available)
+4. The resulting git diff is captured
+5. The judge evaluates both implementations using code review criteria
+
+**Judge evaluation in ralph mode:**
+
+| Criterion | What the Judge Evaluates |
+|-----------|--------------------------|
+| **Code Quality** | Readability, style consistency, best practices |
+| **Correctness** | Does the implementation actually solve the problem? |
+| **Completeness** | Are all requirements addressed? Edge cases handled? |
+| **Simplicity** | Is the solution appropriately minimal? |
+| **Maintainability** | Will this be easy to modify and extend? |
+| **Testability** | Can this code be effectively unit tested? |
+
+**When to use --ralph:**
+
+- When you want to see actual code, not just descriptions
+- When implementation details matter more than high-level design
+- When you want the judge to evaluate real trade-offs in code
+
+**When to skip --ralph:**
+
+- For architectural discussions where code isn't the focus
+- When speed matters (ralph mode takes significantly longer)
+- For exploratory debates where you're still defining the problem
 
 ### Example: Realistic Software Task
 
