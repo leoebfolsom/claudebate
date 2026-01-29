@@ -534,10 +534,88 @@ done
 
 # Judge the debate
 echo ""
-echo ">>> Judge evaluating implementation approaches..."
+if [[ "$RALPH_MODE" == true ]]; then
+    echo ">>> Judge evaluating implementations..."
+else
+    echo ">>> Judge evaluating implementation approaches..."
+fi
 
 DEBATE_CONTENT=$(cat "$TRANSCRIPT")
-JUDGE_PROMPT=$(cat <<EOF
+
+# Build judge prompt based on mode
+if [[ "$RALPH_MODE" == true ]]; then
+    # Ralph mode: Judge evaluates actual implementations
+    JUDGE_PROMPT=$(cat <<EOF
+You are a senior software engineer judging a code implementation debate. Both debaters have ACTUALLY IMPLEMENTED their approaches. Your goal is to evaluate the real code and determine which implementation is better.
+
+IMPLEMENTATION TASK: $TASK
+
+FULL TRANSCRIPT (includes proposals and discussion):
+$DEBATE_CONTENT
+
+=== SESSION A IMPLEMENTATION (ACTUAL CODE) ===
+$IMPL_DIFF_A
+
+=== SESSION B IMPLEMENTATION (ACTUAL CODE) ===
+$IMPL_DIFF_B
+
+Provide your evaluation in this format:
+
+## Implementation Summaries
+**Session A**: [2-3 sentence summary of what they actually built]
+**Session B**: [2-3 sentence summary of what they actually built]
+
+## Code Quality Evaluation
+
+Rate each IMPLEMENTATION (Strong/Adequate/Weak) with specific code references:
+
+| Criterion | Session A | Session B |
+|-----------|-----------|-----------|
+| **Code Quality** (readability, naming, structure) | | |
+| **Correctness** (does it work? logic errors?) | | |
+| **Completeness** (fully implements the approach?) | | |
+| **Simplicity** (minimal complexity, no over-engineering) | | |
+| **Maintainability** (ease of modification, clear boundaries) | | |
+| **Testability** (unit test coverage, mockability) | | |
+
+## Code Review Notes
+
+**Session A implementation**:
+- Strengths: [specific code references]
+- Issues: [bugs, style problems, missing edge cases]
+- Suggested improvements: [list]
+
+**Session B implementation**:
+- Strengths: [specific code references]
+- Issues: [bugs, style problems, missing edge cases]
+- Suggested improvements: [list]
+
+## Verdict
+
+**WINNER: Session [A/B]**
+
+**Why this implementation is better** (top 3 reasons):
+1. [Most important reason with code reference]
+2. [Second reason with code reference]
+3. [Third reason with code reference]
+
+## Recommended Next Steps
+
+If using the winning implementation:
+1. [First improvement to make]
+2. [Second improvement to make]
+3. [Tests to add]
+
+**Code to keep from the losing implementation** (if any):
+[Any good patterns or code worth salvaging]
+
+---
+Judge based on the ACTUAL CODE produced, not just the proposals. The developer should know which implementation to use and what to fix.
+EOF
+)
+else
+    # Standard mode: Judge evaluates proposals only
+    JUDGE_PROMPT=$(cat <<EOF
 You are a senior software engineer judging a code implementation debate. Your goal is to provide an actionable recommendation that a developer can immediately use to start implementing.
 
 IMPLEMENTATION TASK: $TASK
@@ -606,6 +684,7 @@ To implement the winning approach:
 Judge based on engineering merit. The developer should be able to start coding immediately after reading this verdict.
 EOF
 )
+fi
 
 VERDICT=$(claude -p "$JUDGE_PROMPT" 2>/dev/null) || {
     echo "Error running judge"
