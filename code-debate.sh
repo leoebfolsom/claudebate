@@ -261,57 +261,40 @@ implement_approach() {
     # Change to sandbox directory
     cd "$sandbox_path"
 
-    if command -v ralph &>/dev/null; then
-        # Ralph is available - generate minimal prd.json and run ralph
-        local prd_file="$sandbox_path/prd.json"
-        cat > "$prd_file" <<PRDJSON
-{
-  "project": "code_debate_impl",
-  "branchName": "implementation",
-  "description": "Implement the proposed approach for: $TASK",
-  "userStories": [
-    {
-      "id": "IMPL-001",
-      "title": "Implement approach",
-      "description": "$approach",
-      "acceptanceCriteria": [
-        "Implement the approach as described",
-        "Code should be functional and follow best practices",
-        "Changes should be minimal and focused"
-      ],
-      "priority": 1,
-      "passes": false,
-      "notes": ""
-    }
-  ]
-}
-PRDJSON
+    # Use Claude to implement the approach
+    local impl_prompt="You are implementing code in a sandbox directory.
 
-        # Run ralph with timeout
-        timeout "$timeout_seconds" ralph "$prd_file" 2>/dev/null || {
-            echo "Ralph implementation timed out or failed" >&2
-        }
-    else
-        # Fallback to claude with limited tools
-        local impl_prompt="TASK: $TASK
+TASK: $TASK
 
 APPROACH TO IMPLEMENT:
 $approach
 
 INSTRUCTIONS:
-- You are in a sandbox directory with the codebase
 - Implement the approach described above
-- Make focused, minimal changes
+- Make focused, minimal changes to existing files
 - Write clean, working code
 - Do not add unnecessary features or refactoring
+- When done, just say 'Implementation complete'
 
 Implement this approach now."
 
-        # Run claude with timeout and allowed tools
-        timeout "$timeout_seconds" claude -p "$impl_prompt" \
-            --allowedTools "Edit,Write,Read,Bash" \
-            2>/dev/null || {
+    # Determine timeout command (macOS uses gtimeout from coreutils)
+    local timeout_cmd=""
+    if command -v timeout &>/dev/null; then
+        timeout_cmd="timeout $timeout_seconds"
+    elif command -v gtimeout &>/dev/null; then
+        timeout_cmd="gtimeout $timeout_seconds"
+    fi
+
+    # Run claude with dangerously-skip-permissions for autonomous file editing
+    if [[ -n "$timeout_cmd" ]]; then
+        $timeout_cmd claude --dangerously-skip-permissions --print "$impl_prompt" 2>&1 || {
             echo "Claude implementation timed out or failed" >&2
+        }
+    else
+        # No timeout command available, run without timeout
+        claude --dangerously-skip-permissions --print "$impl_prompt" 2>&1 || {
+            echo "Claude implementation failed" >&2
         }
     fi
 
