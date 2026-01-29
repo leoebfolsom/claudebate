@@ -2,7 +2,7 @@
 
 # Claude Code Debate System
 # Debates implementation approaches for software tasks
-# Usage: ./code-debate.sh "task description" [--rounds N] [--time Nm] [--export FORMAT] [--context PATH]
+# Usage: ./code-debate.sh "task description" [--rounds N] [--time Nm] [--export FORMAT] [--context PATH] [--ralph]
 
 set -e
 
@@ -12,6 +12,7 @@ TIME_LIMIT_SECONDS=300  # 5 minutes
 TASK=""
 EXPORT_FORMAT=""  # Export format(s): md, html, or both (comma-separated)
 CONTEXT_PATH=""   # Optional path to file or directory for codebase context
+RALPH_MODE=false  # When true, debaters implement their approaches using Ralph/Claude
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -45,6 +46,10 @@ while [[ $# -gt 0 ]]; do
             CONTEXT_PATH="$2"
             shift 2
             ;;
+        --ralph)
+            RALPH_MODE=true
+            shift
+            ;;
         -*)
             echo "Unknown option: $1"
             exit 1
@@ -68,11 +73,14 @@ if [[ -z "$TASK" ]]; then
     echo "                   FORMAT: md, html, or both (e.g., --export md,html)"
     echo "  --context PATH   File or directory to include as codebase context"
     echo "                   Helps debaters propose approaches grounded in your code"
+    echo "  --ralph          Enable implementation mode: debaters actually implement"
+    echo "                   their approaches using Ralph/Claude, judge evaluates real code"
     echo ""
     echo "Examples:"
     echo "  $0 \"Add user authentication to the API\" --rounds 5"
     echo "  $0 \"Refactor database layer for better testability\" --context ./src/db"
     echo "  $0 \"Implement caching strategy\" --time 3m --export md,html"
+    echo "  $0 \"Add logging utility\" --ralph --context ./src"
     exit 1
 fi
 
