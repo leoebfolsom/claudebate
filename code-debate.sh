@@ -231,6 +231,84 @@ setup_sandbox() {
 # Track sandbox directories for cleanup
 SANDBOX_DIRS=()
 
+# Implement an approach in a sandbox using Ralph or Claude
+# Arguments: $1 = sandbox path, $2 = approach description, $3 = session name (A/B)
+# Returns: git diff via IMPL_DIFF variable
+implement_approach() {
+    local sandbox_path="$1"
+    local approach="$2"
+    local session_name="$3"
+    local timeout_seconds=180  # 3 minutes per implementation
+
+    IMPL_DIFF=""
+
+    # Change to sandbox directory
+    cd "$sandbox_path"
+
+    if command -v ralph &>/dev/null; then
+        # Ralph is available - generate minimal prd.json and run ralph
+        local prd_file="$sandbox_path/prd.json"
+        cat > "$prd_file" <<PRDJSON
+{
+  "project": "code_debate_impl",
+  "branchName": "implementation",
+  "description": "Implement the proposed approach for: $TASK",
+  "userStories": [
+    {
+      "id": "IMPL-001",
+      "title": "Implement approach",
+      "description": "$approach",
+      "acceptanceCriteria": [
+        "Implement the approach as described",
+        "Code should be functional and follow best practices",
+        "Changes should be minimal and focused"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
+PRDJSON
+
+        # Run ralph with timeout
+        timeout "$timeout_seconds" ralph "$prd_file" 2>/dev/null || {
+            echo "Ralph implementation timed out or failed" >&2
+        }
+    else
+        # Fallback to claude with limited tools
+        local impl_prompt="TASK: $TASK
+
+APPROACH TO IMPLEMENT:
+$approach
+
+INSTRUCTIONS:
+- You are in a sandbox directory with the codebase
+- Implement the approach described above
+- Make focused, minimal changes
+- Write clean, working code
+- Do not add unnecessary features or refactoring
+
+Implement this approach now."
+
+        # Run claude with timeout and allowed tools
+        timeout "$timeout_seconds" claude -p "$impl_prompt" \
+            --allowedTools "Edit,Write,Read,Bash" \
+            2>/dev/null || {
+            echo "Claude implementation timed out or failed" >&2
+        }
+    fi
+
+    # Capture git diff of implementation
+    git add -A 2>/dev/null || true
+    IMPL_DIFF=$(git diff --cached 2>/dev/null || echo "No changes captured")
+
+    # Return to original directory
+    cd "$SCRIPT_DIR"
+
+    echo "$IMPL_DIFF"
+}
+
 # Get context content if path specified
 CONTEXT_CONTENT=""
 if [[ -n "$CONTEXT_PATH" ]]; then
