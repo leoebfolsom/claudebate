@@ -1,17 +1,18 @@
 {
   "project": "claudebate",
-  "branchName": "ralph/ralph-mode",
-  "description": "Add --ralph flag to code-debate.sh where debaters actually implement their approaches using Ralph/Claude, and the judge evaluates real code",
+  "branchName": "ralph/html-export-improvements",
+  "description": "Improve HTML export to properly render markdown formatting",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Add --ralph flag and argument parsing",
-      "description": "As a developer, I want to pass --ralph to code-debate.sh to enable implementation mode.",
+      "title": "Add convert_code_blocks function",
+      "description": "Create function to convert markdown code blocks to styled pre/code HTML tags.",
       "acceptanceCriteria": [
-        "Add --ralph flag to argument parsing in code-debate.sh",
-        "Set RALPH_MODE=true when flag is present",
-        "Update usage message to document the new flag",
-        "Flag is optional - default behavior unchanged if not specified"
+        "Add convert_code_blocks() function to export_functions.sh",
+        "Use AWK state machine to track in_code_block state",
+        "Convert ```lang to <pre><code class=\"language-lang\">",
+        "HTML-escape content inside code blocks (& < >)",
+        "Handle unclosed code blocks gracefully"
       ],
       "priority": 1,
       "passes": true,
@@ -19,13 +20,13 @@
     },
     {
       "id": "US-002",
-      "title": "Implement setup_sandbox function",
-      "description": "As a developer, I want isolated sandbox directories for each debater so implementations don't interfere.",
+      "title": "Add convert_headers function",
+      "description": "Create function to convert markdown headers to HTML h1-h6 tags.",
       "acceptanceCriteria": [
-        "Create setup_sandbox() function that creates temp directory",
-        "Copy context using rsync with .git exclusion, fallback to cp if rsync unavailable",
-        "Initialize fresh git repo in sandbox for clean diff tracking",
-        "Return sandbox path for use by implementation functions"
+        "Add convert_headers() function to export_functions.sh",
+        "Use sed -E for extended regex (macOS compatible)",
+        "Convert # through ###### to h1 through h6",
+        "Process from longest pattern to shortest to avoid partial matches"
       ],
       "priority": 2,
       "passes": true,
@@ -33,14 +34,14 @@
     },
     {
       "id": "US-003",
-      "title": "Implement implement_approach function",
-      "description": "As a developer, I want each debater's approach to be actually implemented using Ralph or Claude.",
+      "title": "Add convert_inline_formatting function",
+      "description": "Create function to convert bold/italic markdown to HTML strong/em tags.",
       "acceptanceCriteria": [
-        "Create implement_approach() function that takes sandbox path and approach description",
-        "If ralph command available: generate minimal prd.json and run ralph",
-        "If ralph unavailable: fallback to claude with Edit,Write,Read,Bash tools",
-        "Use timeout to prevent runaway implementations",
-        "Capture git diff of implementation result"
+        "Add convert_inline_formatting() function to export_functions.sh",
+        "Skip lines that are already HTML tags (pre, code, h1-h6)",
+        "HTML-escape non-tag lines before converting",
+        "Convert **text** and __text__ to <strong>",
+        "Convert *text* and _text_ to <em>"
       ],
       "priority": 3,
       "passes": true,
@@ -48,13 +49,13 @@
     },
     {
       "id": "US-004",
-      "title": "Implement cleanup and modified turn flow",
-      "description": "As a developer, I want proper cleanup and a modified debate flow for ralph mode.",
+      "title": "Add CSS styling for new elements",
+      "description": "Add CSS styles for code blocks, headers, and inline formatting.",
       "acceptanceCriteria": [
-        "Create cleanup_sandboxes() function called via trap on EXIT",
-        "Create run_ralph_turn() that orchestrates: get approach proposal, setup sandbox, implement, capture diff",
-        "Store implementation diffs in variables for judge (IMPL_DIFF_A, IMPL_DIFF_B)",
-        "Main loop uses run_ralph_turn() when RALPH_MODE is true"
+        "Add pre/code styling: dark background, monospace font, padding, border-radius",
+        "Add header styling: appropriate margins and colors",
+        "Add strong/em styling if needed",
+        "Styles should match existing design aesthetic"
       ],
       "priority": 4,
       "passes": true,
@@ -62,13 +63,13 @@
     },
     {
       "id": "US-005",
-      "title": "Modify judge prompt for implementation evaluation",
-      "description": "As a developer, I want the judge to evaluate actual implementations, not just theoretical proposals.",
+      "title": "Integrate conversion pipeline into export_to_html",
+      "description": "Modify export_to_html to use the new conversion functions.",
       "acceptanceCriteria": [
-        "When RALPH_MODE: include actual git diffs in judge prompt",
-        "Judge prompt asks to evaluate: code quality, completeness, correctness",
-        "Judge verdict includes which implementation is better and why",
-        "Preserve existing judge behavior when --ralph not used"
+        "Create process_markdown_content() that composes the conversion functions",
+        "Pipe content through: convert_code_blocks | convert_headers | convert_inline_formatting",
+        "Modify export_to_html to use the pipeline for debate content",
+        "Preserve existing section structure (session-a, session-b, verdict classes)"
       ],
       "priority": 5,
       "passes": true,
@@ -76,17 +77,18 @@
     },
     {
       "id": "US-006",
-      "title": "Update README with --ralph documentation",
-      "description": "As a user, I want documentation explaining how to use --ralph mode.",
+      "title": "Test and verify HTML export",
+      "description": "Test the improved HTML export with existing transcripts.",
       "acceptanceCriteria": [
-        "Add --ralph to the options table in Code Debate Mode section",
-        "Document what happens in ralph mode (real implementations, not just proposals)",
-        "Provide example usage",
-        "Note that ralph mode takes longer but produces actual code to evaluate"
+        "Export an existing transcript with code blocks and headers",
+        "Verify code blocks render with proper styling",
+        "Verify headers render as h1-h6 tags",
+        "Verify bold/italic render as strong/em",
+        "Open in browser to visually confirm improvements"
       ],
       "priority": 6,
       "passes": true,
-      "notes": ""
+      "notes": "Known issue: underscores in filenames (e.g. code_debate_2026...) are converted to <em> tags. This is an edge case that could be improved in a future iteration by requiring word boundaries for underscore-based italic."
     }
   ]
 }
