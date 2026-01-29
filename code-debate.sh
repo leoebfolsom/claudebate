@@ -186,6 +186,51 @@ read_context() {
     fi
 }
 
+# Setup isolated sandbox directory for a debater's implementation
+# Arguments: $1 = session name (e.g., "A" or "B")
+# Returns: sandbox path via SANDBOX_PATH variable
+setup_sandbox() {
+    local session_name="$1"
+    local sandbox_base="/tmp/code_debate_sandbox_$$"
+    local sandbox_path="${sandbox_base}_${session_name}"
+
+    # Create sandbox directory
+    mkdir -p "$sandbox_path"
+
+    # Copy context if provided
+    if [[ -n "$CONTEXT_PATH" && -e "$CONTEXT_PATH" ]]; then
+        if command -v rsync &>/dev/null; then
+            # Use rsync with .git exclusion
+            rsync -a --exclude='.git' "$CONTEXT_PATH/" "$sandbox_path/" 2>/dev/null || {
+                # Fallback to cp if rsync fails
+                cp -R "$CONTEXT_PATH"/* "$sandbox_path/" 2>/dev/null || true
+                # Remove .git if it was copied
+                rm -rf "$sandbox_path/.git" 2>/dev/null || true
+            }
+        else
+            # Fallback to cp if rsync unavailable
+            cp -R "$CONTEXT_PATH"/* "$sandbox_path/" 2>/dev/null || true
+            # Remove .git if it was copied
+            rm -rf "$sandbox_path/.git" 2>/dev/null || true
+        fi
+    fi
+
+    # Initialize fresh git repo for clean diff tracking
+    (
+        cd "$sandbox_path"
+        git init -q
+        git add -A 2>/dev/null || true
+        git commit -q -m "Initial state" 2>/dev/null || true
+    )
+
+    # Return sandbox path via variable
+    SANDBOX_PATH="$sandbox_path"
+    echo "$sandbox_path"
+}
+
+# Track sandbox directories for cleanup
+SANDBOX_DIRS=()
+
 # Get context content if path specified
 CONTEXT_CONTENT=""
 if [[ -n "$CONTEXT_PATH" ]]; then
