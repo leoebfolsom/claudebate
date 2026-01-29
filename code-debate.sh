@@ -219,9 +219,9 @@ setup_sandbox() {
     (
         cd "$sandbox_path"
         git init -q
-        git add -A 2>/dev/null || true
-        git commit -q -m "Initial state" 2>/dev/null || true
-    )
+        git add -A
+        git commit -q -m "Initial state" --allow-empty
+    ) >/dev/null 2>&1
 
     # Return sandbox path via variable
     SANDBOX_PATH="$sandbox_path"

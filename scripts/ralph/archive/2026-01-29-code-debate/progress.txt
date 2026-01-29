@@ -1,0 +1,88 @@
+# Ralph Progress Log
+Started: Thu Jan 29 00:54:17 PST 2026
+---
+
+## Codebase Patterns
+- Commit message format: `feat: [US-XXX] - Title`
+- debate.sh is the reference for code-debate.sh - same argument parsing structure
+- Transcripts are saved with timestamp: `${type}_${TIMESTAMP}.txt`
+- Export functions are sourced from `export_functions.sh`
+
+---
+
+## 2026-01-29 01:05 - US-001
+- **What was implemented**: Created code-debate.sh script by adapting debate.sh
+- **Files changed**: code-debate.sh (new file)
+- **Key changes**:
+  - Renamed TOPIC to TASK throughout
+  - Added --context flag for codebase context
+  - Added read_context() function to read files or directories
+  - Updated usage message with code-debate specific examples
+  - Changed transcript filename to code_debate_${TIMESTAMP}.txt
+- **Learnings for future iterations**:
+  - The script structure follows debate.sh closely - build_prompt(), run_turn(), main loop, judge
+  - Context is passed to prompts via CONTEXT_CONTENT variable
+  - US-002, US-003, US-004 will modify the prompts that were scaffolded here
+---
+
+## 2026-01-29 10:30 - US-002
+- **What was implemented**: Verified implementation-focused prompts already exist in build_prompt()
+- **Files changed**: None (functionality was implemented in US-001)
+- **Key findings**:
+  - build_prompt() already asks for implementation approaches (line 253)
+  - Prompts request design decisions and trade-offs (lines 254, 257)
+  - Concrete details encouraged: file structure, function signatures, data flow (line 255)
+  - Pseudocode/code snippets requested (line 256)
+  - Context included via CONTEXT_CONTENT variable (lines 227-232)
+- **Learnings for future iterations**:
+  - US-001 proactively implemented US-002 acceptance criteria
+  - The prompts are implementation-focused vs debate.sh's opinion-focused prompts
+  - Key differences from debate.sh: "IMPLEMENTATION TASK" vs "DEBATE TOPIC", "approach" vs "position"
+---
+
+## 2026-01-29 11:15 - US-003
+- **What was implemented**: Enhanced the judge prompt with engineering-focused evaluation criteria
+- **Files changed**: code-debate.sh (lines 331-398)
+- **Key changes**:
+  - Added structured "Engineering Evaluation" table with ratings for each criterion
+  - Added detailed "Risk Analysis" section with edge cases handled/missed and failure modes
+  - Added "Verdict" section with top 3 key reasons for recommendation
+  - Added comprehensive "Implementation Roadmap" with actionable steps
+  - Included suggested file structure and code patterns sections
+  - Changed tone from "impartial judge" to "senior software engineer"
+- **Learnings for future iterations**:
+  - The judge prompt uses a template format with markdown for structured output
+  - Actionable verdicts include: start point, core implementation, data flow, testing strategy, gotchas
+  - Previous prompt was functional but lacked specific guidance for developers to start coding
+---
+
+## 2026-01-29 12:30 - US-004
+- **What was implemented**: Improved --context flag error handling and macOS compatibility
+- **Files changed**: code-debate.sh (lines 149-152, 175, 183-189)
+- **Key changes**:
+  - Improved error message for missing context paths with actionable hint
+  - Fixed macOS compatibility issue: removed non-portable `head -z` flag from find pipeline
+  - Added success message when context is successfully loaded
+  - Improved warning message for empty directories (clarifies script continues without context)
+- **Learnings for future iterations**:
+  - macOS `head` doesn't support `-z` flag (use for null-delimited input) - GNU-only feature
+  - The read_context() function uses a 10000 char limit, so explicit file count limit isn't needed
+  - Error handling can either fail-fast (exit) or degrade gracefully (warn and continue) - this script uses graceful degradation
+---
+
+## 2026-01-29 13:15 - US-005
+- **What was implemented**: Added comprehensive Code Debate Mode documentation to README
+- **Files changed**: README.md
+- **Key changes**:
+  - Added "Code Debate Mode" section with overview of the feature
+  - Added "When to Use Code Debate" subsection with use cases
+  - Added "Usage" subsection with flag reference table
+  - Added "The --context Flag" subsection with examples and guidance on when to use/skip
+  - Added "Example: Realistic Software Task" with step-by-step walkthrough
+  - Added "How the Judge Evaluates" subsection explaining engineering criteria (5 criteria table)
+  - Added "Output Files" subsection for code debate transcript naming
+- **Learnings for future iterations**:
+  - README follows a consistent pattern: section overview, usage table, examples
+  - The debate.sh "Opinion Debate" vs code-debate.sh "Code Debate" distinction is key
+  - Documentation should explain both "what" (usage) and "why" (when to use)
+---

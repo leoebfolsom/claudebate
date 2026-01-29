@@ -1,0 +1,92 @@
+{
+  "project": "claudebate",
+  "branchName": "ralph/ralph-mode",
+  "description": "Add --ralph flag to code-debate.sh where debaters actually implement their approaches using Ralph/Claude, and the judge evaluates real code",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add --ralph flag and argument parsing",
+      "description": "As a developer, I want to pass --ralph to code-debate.sh to enable implementation mode.",
+      "acceptanceCriteria": [
+        "Add --ralph flag to argument parsing in code-debate.sh",
+        "Set RALPH_MODE=true when flag is present",
+        "Update usage message to document the new flag",
+        "Flag is optional - default behavior unchanged if not specified"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Implement setup_sandbox function",
+      "description": "As a developer, I want isolated sandbox directories for each debater so implementations don't interfere.",
+      "acceptanceCriteria": [
+        "Create setup_sandbox() function that creates temp directory",
+        "Copy context using rsync with .git exclusion, fallback to cp if rsync unavailable",
+        "Initialize fresh git repo in sandbox for clean diff tracking",
+        "Return sandbox path for use by implementation functions"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Implement implement_approach function",
+      "description": "As a developer, I want each debater's approach to be actually implemented using Ralph or Claude.",
+      "acceptanceCriteria": [
+        "Create implement_approach() function that takes sandbox path and approach description",
+        "If ralph command available: generate minimal prd.json and run ralph",
+        "If ralph unavailable: fallback to claude with Edit,Write,Read,Bash tools",
+        "Use timeout to prevent runaway implementations",
+        "Capture git diff of implementation result"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Implement cleanup and modified turn flow",
+      "description": "As a developer, I want proper cleanup and a modified debate flow for ralph mode.",
+      "acceptanceCriteria": [
+        "Create cleanup_sandboxes() function called via trap on EXIT",
+        "Create run_ralph_turn() that orchestrates: get approach proposal, setup sandbox, implement, capture diff",
+        "Store implementation diffs in variables for judge (IMPL_DIFF_A, IMPL_DIFF_B)",
+        "Main loop uses run_ralph_turn() when RALPH_MODE is true"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Modify judge prompt for implementation evaluation",
+      "description": "As a developer, I want the judge to evaluate actual implementations, not just theoretical proposals.",
+      "acceptanceCriteria": [
+        "When RALPH_MODE: include actual git diffs in judge prompt",
+        "Judge prompt asks to evaluate: code quality, completeness, correctness",
+        "Judge verdict includes which implementation is better and why",
+        "Preserve existing judge behavior when --ralph not used"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Update README with --ralph documentation",
+      "description": "As a user, I want documentation explaining how to use --ralph mode.",
+      "acceptanceCriteria": [
+        "Add --ralph to the options table in Code Debate Mode section",
+        "Document what happens in ralph mode (real implementations, not just proposals)",
+        "Provide example usage",
+        "Note that ralph mode takes longer but produces actual code to evaluate"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

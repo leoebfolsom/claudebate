@@ -1,0 +1,83 @@
+# Ralph Progress Log
+Started: Thu Jan 29 08:40:01 PST 2026
+
+## Codebase Patterns
+- code-debate.sh uses bash case statement for argument parsing
+- Variables use uppercase naming (e.g., RALPH_MODE, CONTEXT_PATH)
+- Usage message follows format: echo "  --flag ARGS    Description"
+- Default values are set before argument parsing begins
+- Functions use global variables (LAST_RESPONSE, IMPL_DIFF, etc.) for return values due to bash limitations
+- Use `trap function_name EXIT` for cleanup that must run even on errors
+
+---
+
+## 2026-01-29 - US-001
+- What was implemented: Added --ralph flag to code-debate.sh for enabling implementation mode
+- Files changed: code-debate.sh
+- **Learnings for future iterations:**
+  - The script already had a well-structured argument parser using case statements
+  - Boolean flags don't need a value, just `shift` once (not `shift 2`)
+  - The usage message includes examples - added ralph mode example
+  - Merged ralph/code-debate branch as base since code-debate.sh didn't exist on main
+---
+
+## 2026-01-29 - US-002
+- What was implemented: Added setup_sandbox() function for creating isolated sandbox directories
+- Files changed: code-debate.sh
+- **Learnings for future iterations:**
+  - Function placed after read_context() and before main logic
+  - Returns path via both SANDBOX_PATH variable and stdout for flexibility
+  - Uses subshell ( ) for git init to avoid changing directory in main script
+  - SANDBOX_DIRS array prepared for cleanup tracking (will be used in US-004)
+  - rsync with --exclude='.git' is cleaner than cp + rm -rf .git
+---
+
+## 2026-01-29 - US-003
+- What was implemented: Added implement_approach() function for implementing debater approaches using Ralph or Claude
+- Files changed: code-debate.sh
+- **Learnings for future iterations:**
+  - Function placed right after SANDBOX_DIRS array declaration (before context loading)
+  - Uses `command -v ralph` to check if ralph is available for conditional logic
+  - Heredoc delimiter PRDJSON avoids conflicts with JSON content
+  - Timeout command used to prevent runaway implementations (180 seconds default)
+  - git diff --cached captures staged changes after git add -A
+  - Returns diff via both IMPL_DIFF global variable and stdout
+  - cd back to SCRIPT_DIR is important since the function changes directories
+---
+
+## 2026-01-29 - US-004
+- What was implemented: Added cleanup_sandboxes() function with trap, run_ralph_turn() orchestration function, IMPL_DIFF_A/B variables, and modified main loop for ralph mode
+- Files changed: code-debate.sh
+- **Learnings for future iterations:**
+  - cleanup_sandboxes() uses trap EXIT to ensure cleanup even on errors
+  - IMPL_DIFF_A/B declared early alongside SANDBOX_DIRS for organization
+  - run_ralph_turn() reuses run_turn() for the proposal phase, then adds sandbox/implementation
+  - The main loop conditionally calls run_ralph_turn vs run_turn based on RALPH_MODE
+  - wc -l with tr -d ' ' strips whitespace from line count for clean display
+  - Implementation diffs are logged to transcript for judge to evaluate
+---
+
+## 2026-01-29 - US-005
+- What was implemented: Modified judge prompt to evaluate actual implementations in ralph mode
+- Files changed: code-debate.sh
+- **Learnings for future iterations:**
+  - Used conditional if/else to build different JUDGE_PROMPT based on RALPH_MODE
+  - Ralph mode judge prompt includes IMPL_DIFF_A and IMPL_DIFF_B with clear section headers
+  - Evaluation criteria for ralph mode: Code Quality, Correctness, Completeness, Simplicity, Maintainability, Testability
+  - Standard mode uses "RECOMMENDED: Session [A/B]" while ralph mode uses "WINNER: Session [A/B]"
+  - Ralph mode includes "Code Review Notes" section for specific code-level feedback
+  - Preserved original judge prompt exactly when --ralph not used
+---
+
+## 2026-01-29 - US-006
+- What was implemented: Added comprehensive --ralph documentation to README.md
+- Files changed: README.md
+- **Learnings for future iterations:**
+  - Added --ralph to the options table in Code Debate Mode section
+  - Created new "The --ralph Flag (Implementation Mode)" subsection after --context section
+  - Documented the 5-step workflow: propose -> sandbox -> implement -> diff -> evaluate
+  - Added judge evaluation criteria table matching the code-debate.sh implementation
+  - Included "When to use" and "When to skip" guidance similar to --context section
+  - Example usage shows both standard and ralph mode for comparison
+  - Note about ralph mode taking longer is in "When to skip" section
+---

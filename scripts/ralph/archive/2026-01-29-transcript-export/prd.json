@@ -1,0 +1,79 @@
+{
+  "project": "claudebate",
+  "branchName": "ralph/code-debate",
+  "description": "Add code debate mode for exploring implementation approaches through adversarial discussion",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create code-debate.sh script",
+      "description": "As a developer, I want a script that debates implementation approaches so I can explore trade-offs before coding.",
+      "acceptanceCriteria": [
+        "Create code-debate.sh by adapting debate.sh",
+        "Accept a task/feature description as the main argument",
+        "Support same flags as debate.sh (--rounds, --time, --export)",
+        "Add --context flag to optionally specify a file or directory for codebase context",
+        "Update usage message to document code debate purpose and flags"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Create implementation-focused prompts",
+      "description": "As a developer, I want the debaters to propose and defend specific implementation approaches with code examples.",
+      "acceptanceCriteria": [
+        "Modify build_prompt() to ask for implementation approaches, not opinions",
+        "Prompts should request: proposed approach, key design decisions, trade-offs acknowledged",
+        "Encourage concrete details: file structure, function signatures, data flow",
+        "Include pseudocode or code snippets in responses when helpful",
+        "If --context provided, include relevant codebase info in the prompt"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Create engineering-focused judge prompt",
+      "description": "As a developer, I want the judge to evaluate approaches using software engineering criteria.",
+      "acceptanceCriteria": [
+        "Judge evaluates on: simplicity, maintainability, testability, performance, extensibility",
+        "Judge identifies risks and edge cases each approach handles or misses",
+        "Verdict includes: recommended approach, key reasons, implementation notes",
+        "Output is actionable - developer can proceed with the winning approach"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Implement --context flag for codebase awareness",
+      "description": "As a developer, I want to provide existing code context so the debate is grounded in my actual codebase.",
+      "acceptanceCriteria": [
+        "--context accepts a file path or directory",
+        "If directory, read key files (*.sh, *.py, *.js, *.ts, etc.) up to reasonable limit",
+        "Include context summary in prompts: 'Existing codebase context: ...'",
+        "Handle missing/invalid paths gracefully with clear error message"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Update README with code debate documentation",
+      "description": "As a user, I want documentation explaining how to use code debate mode.",
+      "acceptanceCriteria": [
+        "Add 'Code Debate Mode' section to README",
+        "Document --context flag and when to use it",
+        "Provide example usage for a realistic software task",
+        "Explain how the judge evaluates approaches differently from opinion debates"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
