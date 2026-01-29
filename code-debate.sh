@@ -329,27 +329,72 @@ echo ">>> Judge evaluating implementation approaches..."
 
 DEBATE_CONTENT=$(cat "$TRANSCRIPT")
 JUDGE_PROMPT=$(cat <<EOF
-You are an impartial technical judge evaluating a code implementation debate.
+You are a senior software engineer judging a code implementation debate. Your goal is to provide an actionable recommendation that a developer can immediately use to start implementing.
 
 IMPLEMENTATION TASK: $TASK
 
 FULL TRANSCRIPT:
 $DEBATE_CONTENT
 
-INSTRUCTIONS:
-Analyze both implementation approaches and recommend one. Your response should include:
-1. **Summary**: Brief overview of each approach (2-3 sentences each)
-2. **Evaluation Criteria**:
-   - Simplicity: Which is easier to understand and maintain?
-   - Maintainability: Which will be easier to modify over time?
-   - Testability: Which is easier to test?
-   - Performance: Any performance implications?
-   - Extensibility: Which handles future requirements better?
-3. **Risks & Edge Cases**: What does each approach handle or miss?
-4. **Winner**: State "Session A" or "Session B" as the recommended approach
-5. **Implementation Notes**: Key points for implementing the winning approach
+Provide your evaluation in this format:
 
-Be practical and objective. Judge based on engineering merit, not personal preference.
+## Approach Summaries
+**Session A**: [2-3 sentence summary of their approach]
+**Session B**: [2-3 sentence summary of their approach]
+
+## Engineering Evaluation
+
+Rate each approach (Strong/Adequate/Weak) with brief justification:
+
+| Criterion | Session A | Session B |
+|-----------|-----------|-----------|
+| **Simplicity** (ease of understanding, minimal complexity) | | |
+| **Maintainability** (ease of modification, clear boundaries) | | |
+| **Testability** (unit test coverage, mockability, isolation) | | |
+| **Performance** (efficiency, scalability concerns) | | |
+| **Extensibility** (handles future requirements, flexibility) | | |
+
+## Risk Analysis
+
+**Session A risks**:
+- Edge cases handled: [list]
+- Edge cases missed: [list]
+- Potential failure modes: [list]
+
+**Session B risks**:
+- Edge cases handled: [list]
+- Edge cases missed: [list]
+- Potential failure modes: [list]
+
+## Verdict
+
+**RECOMMENDED: Session [A/B]**
+
+**Key reasons** (top 3):
+1. [Most important reason]
+2. [Second reason]
+3. [Third reason]
+
+## Implementation Roadmap
+
+To implement the winning approach:
+
+1. **Start with**: [First file/component to create or modify]
+2. **Core implementation**: [Key functions/classes to build]
+3. **Data flow**: [How data moves through the system]
+4. **Testing strategy**: [What to test and how]
+5. **Gotchas to watch**: [Common pitfalls to avoid]
+
+**Suggested file structure** (if applicable):
+\`\`\`
+[directory/file layout]
+\`\`\`
+
+**Key code patterns to use**:
+[Any specific patterns, interfaces, or approaches recommended]
+
+---
+Judge based on engineering merit. The developer should be able to start coding immediately after reading this verdict.
 EOF
 )
 
