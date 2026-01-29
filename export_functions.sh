@@ -3,6 +3,54 @@
 # Shared export functions for claudebate
 # These functions can be sourced by debate.sh and export.sh
 
+# Convert markdown code blocks to HTML pre/code tags
+# Uses AWK state machine to track in_code_block state
+# Usage: echo "$content" | convert_code_blocks
+convert_code_blocks() {
+    awk '
+        BEGIN {
+            in_code_block = 0
+            code_lang = ""
+        }
+        /^```/ {
+            if (in_code_block == 0) {
+                # Opening code block - extract language if present
+                in_code_block = 1
+                code_lang = $0
+                gsub(/^```/, "", code_lang)
+                gsub(/[[:space:]].*$/, "", code_lang)  # Remove anything after language
+                if (code_lang != "") {
+                    print "<pre><code class=\"language-" code_lang "\">"
+                } else {
+                    print "<pre><code>"
+                }
+                next
+            } else {
+                # Closing code block
+                in_code_block = 0
+                code_lang = ""
+                print "</code></pre>"
+                next
+            }
+        }
+        {
+            if (in_code_block) {
+                # HTML-escape content inside code blocks
+                gsub(/&/, "\\&amp;")
+                gsub(/</, "\\&lt;")
+                gsub(/>/, "\\&gt;")
+            }
+            print
+        }
+        END {
+            # Handle unclosed code blocks gracefully
+            if (in_code_block) {
+                print "</code></pre>"
+            }
+        }
+    '
+}
+
 export_to_md() {
     local transcript_path="$1"
     local md_path="${transcript_path%.txt}.md"
