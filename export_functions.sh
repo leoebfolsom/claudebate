@@ -65,6 +65,69 @@ convert_headers() {
         -e 's/^# (.*)$/<h1>\1<\/h1>/'
 }
 
+# Convert markdown bold/italic to HTML strong/em tags
+# Skips lines that are already HTML tags (pre, code, h1-h6)
+# HTML-escapes non-tag lines before converting
+# Usage: echo "$content" | convert_inline_formatting
+convert_inline_formatting() {
+    awk '
+        {
+            # Skip lines that are already HTML tags (pre, code, h1-h6)
+            if (/^<pre>/ || /^<\/pre>/ || /^<code/ || /^<\/code>/ || /^<h[1-6]>/ || /^<\/h[1-6]>/) {
+                print
+                next
+            }
+
+            # Also skip content inside code blocks (already escaped by convert_code_blocks)
+            if (/^<pre><code/) {
+                print
+                next
+            }
+
+            line = $0
+
+            # HTML-escape non-tag lines (& first, then < and >)
+            gsub(/&/, "\\&amp;", line)
+            gsub(/</, "\\&lt;", line)
+            gsub(/>/, "\\&gt;", line)
+
+            # Convert **text** to <strong>text</strong> (process before single *)
+            while (match(line, /\*\*[^*]+\*\*/)) {
+                before = substr(line, 1, RSTART - 1)
+                matched = substr(line, RSTART + 2, RLENGTH - 4)
+                after = substr(line, RSTART + RLENGTH)
+                line = before "<strong>" matched "</strong>" after
+            }
+
+            # Convert __text__ to <strong>text</strong>
+            while (match(line, /__[^_]+__/)) {
+                before = substr(line, 1, RSTART - 1)
+                matched = substr(line, RSTART + 2, RLENGTH - 4)
+                after = substr(line, RSTART + RLENGTH)
+                line = before "<strong>" matched "</strong>" after
+            }
+
+            # Convert *text* to <em>text</em> (avoid matching ** which is already converted)
+            while (match(line, /\*[^*]+\*/)) {
+                before = substr(line, 1, RSTART - 1)
+                matched = substr(line, RSTART + 1, RLENGTH - 2)
+                after = substr(line, RSTART + RLENGTH)
+                line = before "<em>" matched "</em>" after
+            }
+
+            # Convert _text_ to <em>text</em> (avoid matching __ which is already converted)
+            while (match(line, /_[^_]+_/)) {
+                before = substr(line, 1, RSTART - 1)
+                matched = substr(line, RSTART + 1, RLENGTH - 2)
+                after = substr(line, RSTART + RLENGTH)
+                line = before "<em>" matched "</em>" after
+            }
+
+            print line
+        }
+    '
+}
+
 export_to_md() {
     local transcript_path="$1"
     local md_path="${transcript_path%.txt}.md"
