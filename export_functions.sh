@@ -67,19 +67,35 @@ convert_headers() {
 
 # Convert markdown bold/italic to HTML strong/em tags
 # Skips lines that are already HTML tags (pre, code, h1-h6)
+# Tracks code block state to skip content inside code blocks
 # HTML-escapes non-tag lines before converting
 # Usage: echo "$content" | convert_inline_formatting
 convert_inline_formatting() {
     awk '
+        BEGIN {
+            in_code_block = 0
+        }
         {
-            # Skip lines that are already HTML tags (pre, code, h1-h6)
-            if (/^<pre>/ || /^<\/pre>/ || /^<code/ || /^<\/code>/ || /^<h[1-6]>/ || /^<\/h[1-6]>/) {
+            # Track code block state
+            if (/^<pre><code/) {
+                in_code_block = 1
+                print
+                next
+            }
+            if (/^<\/code><\/pre>/) {
+                in_code_block = 0
                 print
                 next
             }
 
-            # Also skip content inside code blocks (already escaped by convert_code_blocks)
-            if (/^<pre><code/) {
+            # Skip content inside code blocks (already HTML-escaped by convert_code_blocks)
+            if (in_code_block) {
+                print
+                next
+            }
+
+            # Skip lines that are already HTML tags (h1-h6)
+            if (/^<h[1-6]>/ || /^<\/h[1-6]>/) {
                 print
                 next
             }
@@ -126,6 +142,13 @@ convert_inline_formatting() {
             print line
         }
     '
+}
+
+# Process markdown content through the full conversion pipeline
+# Composes: convert_code_blocks | convert_headers | convert_inline_formatting
+# Usage: echo "$content" | process_markdown_content
+process_markdown_content() {
+    convert_code_blocks | convert_headers | convert_inline_formatting
 }
 
 export_to_md() {
@@ -384,13 +407,28 @@ HTMLHEAD
         echo "    </div>"
 
         # Process the transcript content with awk
+        # First pass: extract sections and content markers
+        # Second pass: process content through markdown pipeline
         echo "$content" | awk '
             BEGIN {
                 in_section = 0
                 section_type = ""
                 in_verdict = 0
+                content_buffer = ""
             }
+
+            function flush_content() {
+                if (content_buffer != "") {
+                    # Output marker for content that needs markdown processing
+                    print "___CONTENT_START___"
+                    print content_buffer
+                    print "___CONTENT_END___"
+                    content_buffer = ""
+                }
+            }
+
             /^--- Session A/ {
+                flush_content()
                 if (in_section) {
                     print "    </div>"
                     print "    </div>"
@@ -407,6 +445,7 @@ HTMLHEAD
                 next
             }
             /^--- Session B/ {
+                flush_content()
                 if (in_section) {
                     print "    </div>"
                     print "    </div>"
@@ -423,6 +462,7 @@ HTMLHEAD
                 next
             }
             /^=== JUDGE'\''S VERDICT ===/ {
+                flush_content()
                 if (in_section) {
                     print "    </div>"
                     print "    </div>"
@@ -439,6 +479,7 @@ HTMLHEAD
                 next
             }
             /^=== DEBATE ENDED/ {
+                flush_content()
                 if (in_section) {
                     print "    </div>"
                     print "    </div>"
@@ -452,22 +493,59 @@ HTMLHEAD
                 next
             }
             {
-                # Print regular content as paragraphs (if not empty)
-                if (NF > 0) {
-                    # Escape HTML special characters
-                    gsub(/&/, "\\&amp;", $0)
-                    gsub(/</, "\\&lt;", $0)
-                    gsub(/>/, "\\&gt;", $0)
-                    print "            <p>" $0 "</p>"
+                # Accumulate content lines (preserve empty lines)
+                if (in_section || in_verdict) {
+                    if (content_buffer != "") {
+                        content_buffer = content_buffer "\n" $0
+                    } else {
+                        content_buffer = $0
+                    }
                 }
             }
             END {
+                flush_content()
                 if (in_section || in_verdict) {
                     print "        </div>"
                     print "    </div>"
                 }
             }
-        '
+        ' | while IFS= read -r line; do
+            if [[ "$line" == "___CONTENT_START___" ]]; then
+                # Read content until END marker and process through pipeline
+                content_block=""
+                while IFS= read -r content_line && [[ "$content_line" != "___CONTENT_END___" ]]; do
+                    if [[ -n "$content_block" ]]; then
+                        content_block="$content_block"$'\n'"$content_line"
+                    else
+                        content_block="$content_line"
+                    fi
+                done
+                # Process content through markdown pipeline and wrap in paragraphs
+                in_code_block=false
+                echo "$content_block" | process_markdown_content | while IFS= read -r processed_line; do
+                    # Track code block state
+                    if [[ "$processed_line" =~ ^'<pre><code' ]]; then
+                        in_code_block=true
+                        echo "            $processed_line"
+                    elif [[ "$processed_line" == "</code></pre>" ]]; then
+                        in_code_block=false
+                        echo "            $processed_line"
+                    elif [[ "$in_code_block" == "true" ]]; then
+                        # Inside code block - output raw (already HTML-escaped)
+                        echo "$processed_line"
+                    elif [[ -n "$processed_line" ]]; then
+                        # Check if line is already an HTML block element
+                        if [[ "$processed_line" =~ ^'<'(h[1-6]|/h[1-6]) ]]; then
+                            echo "            $processed_line"
+                        else
+                            echo "            <p>$processed_line</p>"
+                        fi
+                    fi
+                done
+            else
+                echo "$line"
+            fi
+        done
 
         echo "</body>"
         echo "</html>"
