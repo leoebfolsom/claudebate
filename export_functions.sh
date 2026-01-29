@@ -51,6 +51,20 @@ convert_code_blocks() {
     '
 }
 
+# Convert markdown headers to HTML h1-h6 tags
+# Uses sed -E for extended regex (macOS compatible)
+# Process from longest pattern to shortest to avoid partial matches
+# Usage: echo "$content" | convert_headers
+convert_headers() {
+    sed -E \
+        -e 's/^###### (.*)$/<h6>\1<\/h6>/' \
+        -e 's/^##### (.*)$/<h5>\1<\/h5>/' \
+        -e 's/^#### (.*)$/<h4>\1<\/h4>/' \
+        -e 's/^### (.*)$/<h3>\1<\/h3>/' \
+        -e 's/^## (.*)$/<h2>\1<\/h2>/' \
+        -e 's/^# (.*)$/<h1>\1<\/h1>/'
+}
+
 export_to_md() {
     local transcript_path="$1"
     local md_path="${transcript_path%.txt}.md"
