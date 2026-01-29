@@ -147,7 +147,8 @@ read_context() {
     local max_chars=10000  # Limit context size
 
     if [[ ! -e "$path" ]]; then
-        echo "Warning: Context path '$path' does not exist" >&2
+        echo "Error: Context path '$path' does not exist" >&2
+        echo "Hint: Check the path or remove --context to run without codebase context" >&2
         return 1
     fi
 
@@ -171,7 +172,7 @@ read_context() {
                 content+="$file_content"$'\n\n'
                 total_chars=${#content}
             fi
-        done < <(find "$path" -type f \( -name "*.sh" -o -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.tsx" -o -name "*.jsx" -o -name "*.go" -o -name "*.rs" -o -name "*.java" -o -name "*.rb" -o -name "*.php" -o -name "*.c" -o -name "*.cpp" -o -name "*.h" \) -print0 2>/dev/null | head -z -n 20)
+        done < <(find "$path" -type f \( -name "*.sh" -o -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.tsx" -o -name "*.jsx" -o -name "*.go" -o -name "*.rs" -o -name "*.java" -o -name "*.rb" -o -name "*.php" -o -name "*.c" -o -name "*.cpp" -o -name "*.h" \) -print0 2>/dev/null)
 
         echo "$content"
     fi
@@ -182,7 +183,9 @@ CONTEXT_CONTENT=""
 if [[ -n "$CONTEXT_PATH" ]]; then
     CONTEXT_CONTENT=$(read_context "$CONTEXT_PATH")
     if [[ -z "$CONTEXT_CONTENT" ]]; then
-        echo "Warning: Could not read context from '$CONTEXT_PATH'"
+        echo "Warning: No code files found in '$CONTEXT_PATH' (continuing without context)"
+    else
+        echo "Loaded context from: $CONTEXT_PATH"
     fi
 fi
 
