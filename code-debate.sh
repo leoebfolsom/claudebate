@@ -14,6 +14,12 @@ EXPORT_FORMAT=""  # Export format(s): md, html, or both (comma-separated)
 CONTEXT_PATH=""   # Optional path to file or directory for codebase context
 RALPH_MODE=false  # When true, debaters implement their approaches using Ralph/Claude
 
+# Track if user provided explicit configuration
+EXPLICIT_ROUNDS=false
+EXPLICIT_TIME=false
+EXPLICIT_RALPH=false
+AUTO_MODE=false  # Set to true to skip confirmation prompt
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -23,6 +29,7 @@ while [[ $# -gt 0 ]]; do
             else
                 MAX_ROUNDS="$2"
             fi
+            EXPLICIT_ROUNDS=true
             shift 2
             ;;
         --time)
@@ -36,6 +43,7 @@ while [[ $# -gt 0 ]]; do
             else
                 TIME_LIMIT_SECONDS="$TIME_ARG"
             fi
+            EXPLICIT_TIME=true
             shift 2
             ;;
         --export)
@@ -48,6 +56,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         --ralph)
             RALPH_MODE=true
+            EXPLICIT_RALPH=true
+            shift
+            ;;
+        --auto|-y)
+            AUTO_MODE=true
             shift
             ;;
         -*)
@@ -75,6 +88,7 @@ if [[ -z "$TASK" ]]; then
     echo "                   Helps debaters propose approaches grounded in your code"
     echo "  --ralph          Enable implementation mode: debaters actually implement"
     echo "                   their approaches using Ralph/Claude, judge evaluates real code"
+    echo "  --auto, -y       Skip confirmation prompt, use suggested settings automatically"
     echo ""
     echo "Examples:"
     echo "  $0 \"Add user authentication to the API\" --rounds 5"
@@ -82,6 +96,94 @@ if [[ -z "$TASK" ]]; then
     echo "  $0 \"Implement caching strategy\" --time 3m --export md,html"
     echo "  $0 \"Add logging utility\" --ralph --context ./src"
     exit 1
+fi
+
+# Smart configuration: assess task complexity and suggest settings if not explicitly provided
+if [[ "$EXPLICIT_ROUNDS" == false || "$EXPLICIT_RALPH" == false ]]; then
+    # Only run triage if user didn't provide explicit configuration
+    TRIAGE_PROMPT="Assess this software task and suggest debate configuration.
+
+TASK: $TASK
+
+Respond in EXACTLY this format (one line each, no extra text):
+COMPLEXITY: simple|moderate|complex
+ROUNDS: <number 1-5>
+RALPH: yes|no
+REASON: <brief 10-word explanation>
+
+Guidelines:
+- simple: typos, adding comments, renaming, small config changes → 1-2 rounds, no ralph
+- moderate: adding a flag, small feature, refactoring one function → 2-3 rounds, no ralph
+- complex: new features, architectural changes, multi-file changes → 3-5 rounds, consider ralph"
+
+    # Run quick triage
+    TRIAGE_RESULT=$(claude -p "$TRIAGE_PROMPT" 2>/dev/null) || TRIAGE_RESULT=""
+
+    if [[ -n "$TRIAGE_RESULT" ]]; then
+        # Parse triage results
+        SUGGESTED_COMPLEXITY=$(echo "$TRIAGE_RESULT" | grep -i "^COMPLEXITY:" | sed 's/^COMPLEXITY:[[:space:]]*//' | tr '[:upper:]' '[:lower:]')
+        SUGGESTED_ROUNDS=$(echo "$TRIAGE_RESULT" | grep -i "^ROUNDS:" | sed 's/^ROUNDS:[[:space:]]*//')
+        SUGGESTED_RALPH=$(echo "$TRIAGE_RESULT" | grep -i "^RALPH:" | sed 's/^RALPH:[[:space:]]*//' | tr '[:upper:]' '[:lower:]')
+        SUGGESTED_REASON=$(echo "$TRIAGE_RESULT" | grep -i "^REASON:" | sed 's/^REASON:[[:space:]]*//')
+
+        # Apply suggestions only for non-explicit settings
+        if [[ "$EXPLICIT_ROUNDS" == false && "$SUGGESTED_ROUNDS" =~ ^[0-9]+$ ]]; then
+            MAX_ROUNDS="$SUGGESTED_ROUNDS"
+        fi
+        if [[ "$EXPLICIT_RALPH" == false && "$SUGGESTED_RALPH" == "yes" ]]; then
+            RALPH_MODE=true
+        fi
+
+        # Adjust time based on complexity if not explicit
+        if [[ "$EXPLICIT_TIME" == false ]]; then
+            case "$SUGGESTED_COMPLEXITY" in
+                simple) TIME_LIMIT_SECONDS=120 ;;   # 2 minutes
+                moderate) TIME_LIMIT_SECONDS=180 ;; # 3 minutes
+                complex) TIME_LIMIT_SECONDS=300 ;;  # 5 minutes
+            esac
+        fi
+
+        # Show proposed configuration and ask for confirmation (unless --auto)
+        if [[ "$AUTO_MODE" == false ]]; then
+            echo "Task: $TASK"
+            echo ""
+            echo "Suggested configuration (${SUGGESTED_COMPLEXITY:-unknown} task):"
+            echo "  Rounds: $MAX_ROUNDS"
+            echo "  Time:   $((TIME_LIMIT_SECONDS / 60))m"
+            echo "  Ralph:  $([[ "$RALPH_MODE" == true ]] && echo "yes (implementations)" || echo "no (proposals only)")"
+            if [[ -n "$SUGGESTED_REASON" ]]; then
+                echo "  Reason: $SUGGESTED_REASON"
+            fi
+            echo ""
+            read -p "Proceed with these settings? [Y/n/adjust] " CONFIRM
+
+            case "${CONFIRM,,}" in
+                n|no)
+                    echo "Cancelled."
+                    exit 0
+                    ;;
+                a|adjust)
+                    read -p "Rounds [$MAX_ROUNDS]: " NEW_ROUNDS
+                    [[ -n "$NEW_ROUNDS" ]] && MAX_ROUNDS="$NEW_ROUNDS"
+
+                    read -p "Time in minutes [$((TIME_LIMIT_SECONDS / 60))]: " NEW_TIME
+                    [[ -n "$NEW_TIME" ]] && TIME_LIMIT_SECONDS=$((NEW_TIME * 60))
+
+                    read -p "Use --ralph? (y/n) [$([[ "$RALPH_MODE" == true ]] && echo "y" || echo "n")]: " NEW_RALPH
+                    case "${NEW_RALPH,,}" in
+                        y|yes) RALPH_MODE=true ;;
+                        n|no) RALPH_MODE=false ;;
+                    esac
+                    echo ""
+                    echo "Updated: $MAX_ROUNDS rounds, $((TIME_LIMIT_SECONDS / 60))m, ralph=$RALPH_MODE"
+                    ;;
+                *)
+                    # Default: proceed with suggested settings
+                    ;;
+            esac
+            echo ""
+        fi
+    fi
 fi
 
 # Setup
