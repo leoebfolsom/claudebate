@@ -1,0 +1,6 @@
+=== CODE DEBATE: test task ===
+Started: Thu Jan 29 01:00:37 PST 2026
+Limits: 10 rounds, 5m 0s
+Context: /nonexistent/path
+==========================================
+

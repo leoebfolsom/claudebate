@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debate Transcript</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .metadata {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .metadata p {
+            margin: 5px 0;
+        }
+        .session-a {
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .session-b {
+            background-color: #fdf2e9;
+            border-left: 4px solid #e67e22;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .session-header {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        .session-a .session-header {
+            color: #2980b9;
+        }
+        .session-b .session-header {
+            color: #d35400;
+        }
+        .verdict {
+            background-color: #e8f8f5;
+            border: 2px solid #27ae60;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 8px;
+        }
+        .verdict h2 {
+            color: #27ae60;
+            margin-top: 0;
+            border-bottom: 2px solid #27ae60;
+            padding-bottom: 10px;
+        }
+        .content p {
+            margin: 10px 0;
+        }
+        .ended-note {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1></h1>
+    <div class="metadata">
+        <p><strong>Date:</strong> Thu Jan 29 08:24:57 PST 2026</p>
+        <p><strong>Limits:</strong> 2 rounds, 3m 0s</p>
+        <p><strong>Total Turns:</strong> 5</p>
+    </div>
+            <p>=== CODE DEBATE: Add --ralph flag to code-debate.sh where each debater uses Ralph to actually implement their proposed approach, then the judge evaluates the real implementations rather than just theoretical proposals ===</p>
+            <p>Context: .</p>
+    <div class="session-a">
+        <div class="session-header">Session A - Turn 1</div>
+        <div class="content">
+            <p>## Implementation Approach: Sandbox-Based Real Implementation with Ralph</p>
+            <p>I propose adding a `--ralph` flag that creates isolated sandbox directories where each debater uses Ralph to actually implement their approach. The judge then evaluates real, working code rather than theoretical proposals.</p>
+            <p>### Key Design Decisions</p>
+            <p>**1. Sandbox Isolation**: Each debater gets a temporary directory (`/tmp/debate_sandbox_a_$TIMESTAMP` and `_b_`) containing a copy of the context path contents. This prevents debaters from interfering with each other or the real codebase.</p>
+            <p>**2. Ralph Integration via Subprocess**: Rather than modifying Ralph itself, we invoke it as a subprocess with a generated `prd.json` that describes the implementation task. Each debater's "response" becomes a PRD that Ralph executes.</p>
+            <p>**3. Modified Turn Flow**:</p>
+            <p>```bash</p>
+            <p>run_ralph_turn() {</p>
+            <p>    local session="$1"</p>
+            <p>    local sandbox="$2"</p>
+            <p>    # Generate implementation PRD from debater's approach</p>
+            <p>    local prd_prompt=$(build_ralph_prompt "$session" "$TASK")</p>
+            <p>    local prd_response=$(claude -p "$prd_prompt")</p>
+            <p>    # Write prd.json to sandbox</p>
+            <p>    echo "$prd_response" &gt; "$sandbox/prd.json"</p>
+            <p>    # Run Ralph in sandbox directory</p>
+            <p>    cd "$sandbox" &amp;&amp; ralph run --prd prd.json 2&gt;&amp;1</p>
+            <p>    # Capture resulting code for judge</p>
+            <p>    IMPLEMENTATION_RESULT=$(find "$sandbox" -name "*.sh" -o -name "*.py" | xargs cat)</p>
+            <p>}</p>
+            <p>```</p>
+            <p>**4. Judge Evaluates Real Code**: The judge prompt receives both implementations' actual source code, test results if available, and can diff them against the original context.</p>
+            <p>### Trade-offs</p>
+            <p>- **Longer execution time**: Real implementations take significantly longer than theoretical proposals (mitigate with `--time` adjustment)</p>
+            <p>- **Ralph dependency**: Requires Ralph to be installed and configured</p>
+            <p>- **Complexity**: More failure modes (Ralph errors, sandbox issues)</p>
+            <p>- **Context copying overhead**: Large codebases slow sandbox setup</p>
+            <p>### File Changes</p>
+            <p>Additions to argument parsing:</p>
+            <p>```bash</p>
+            <p>--ralph)</p>
+            <p>    RALPH_MODE=true</p>
+            <p>    shift</p>
+            <p>    ;;</p>
+            <p>```</p>
+            <p>New functions: `setup_sandbox()`, `run_ralph_turn()`, `cleanup_sandboxes()`, and modified `build_judge_prompt()` to include actual implementation diffs.</p>
+    </div>
+    </div>
+    <div class="session-b">
+        <div class="session-header">Session B - Turn 2</div>
+        <div class="content">
+            <p>## Alternative Approach: In-Process Implementation with Git Worktrees</p>
+            <p>I propose a different architecture that uses **git worktrees** instead of sandbox copies, and runs implementations **sequentially in the same process** rather than spawning Ralph subprocesses. This trades some isolation for significantly better performance and simpler debugging.</p>
+            <p>### Key Design Decisions</p>
+            <p>**1. Git Worktrees for Isolation**: Instead of copying the entire context directory, create lightweight git worktrees. This is faster, preserves git history for the judge to inspect, and allows meaningful diffs.</p>
+            <p>```bash</p>
+            <p>setup_worktrees() {</p>
+            <p>    local base_commit=$(git rev-parse HEAD)</p>
+            <p>    git worktree add -b debate-a "$WORKTREE_A" "$base_commit" 2&gt;/dev/null</p>
+            <p>    git worktree add -b debate-b "$WORKTREE_B" "$base_commit" 2&gt;/dev/null</p>
+            <p>}</p>
+            <p>```</p>
+            <p>**2. Direct Claude Implementation (No Ralph Dependency)**: Rather than requiring Ralph, have Claude directly write implementation code using the `--allowedTools` flag to enable file operations. This removes a major dependency and failure point.</p>
+            <p>```bash</p>
+            <p>run_implementation_turn() {</p>
+            <p>    local session="$1"</p>
+            <p>    local worktree="$2"</p>
+            <p>    local prompt="Implement the following in $worktree: $TASK</p>
+            <p>    Write actual code files. You have access to Edit, Write, and Bash tools."</p>
+            <p>    claude -p "$prompt" --allowedTools Edit,Write,Bash --cwd "$worktree"</p>
+            <p>    # Capture the diff for judge</p>
+            <p>    IMPL_DIFF=$(cd "$worktree" &amp;&amp; git diff HEAD)</p>
+            <p>}</p>
+            <p>```</p>
+            <p>**3. Judge Receives Git Diffs**: The judge evaluates actual `git diff` output from each worktree, which is more readable than raw file contents and highlights exactly what changed.</p>
+            <p>### Trade-offs</p>
+            <p>- **Requires git repository**: Won't work on non-git directories (but `--context` targets are typically repos)</p>
+            <p>- **Less isolation than /tmp sandboxes**: Worktrees share the object store (acceptable since we're reading, not corrupting)</p>
+            <p>- **No Ralph-specific features**: Loses Ralph's planning/verification if those matter to the user</p>
+            <p>### Why This Over Sandbox Approach</p>
+            <p>The opponent's approach copies potentially large directories and adds Ralph as a hard dependency. Git worktrees are nearly instant regardless of repo size, and using Claude directly means fewer moving parts. The judge also gets cleaner diff output rather than having to parse full file contents.</p>
+    </div>
+    </div>
+    <div class="session-a">
+        <div class="session-header">Session A - Turn 3</div>
+        <div class="content">
+            <p>## Counter-Proposal: Sandbox Copy Approach with Optional Ralph Integration</p>
+            <p>I propose a **sandbox copy approach** that creates isolated temporary directories for each debater, with Ralph as an **optional** dependency that falls back to direct Claude implementation.</p>
+            <p>### Key Design Decisions</p>
+            <p>**1. Temporary Directory Sandboxes (Not Worktrees)**</p>
+            <p>Git worktrees have a critical flaw: they require the context path to be a git repository. Many users will pass `--context ./src` on a directory that isn't a repo root, or pass non-git directories entirely. Temporary copies work universally:</p>
+            <p>```bash</p>
+            <p>setup_sandboxes() {</p>
+            <p>    SANDBOX_A=$(mktemp -d)</p>
+            <p>    SANDBOX_B=$(mktemp -d)</p>
+            <p>    if [[ -n "$CONTEXT_PATH" ]]; then</p>
+            <p>        cp -r "$CONTEXT_PATH"/* "$SANDBOX_A/"</p>
+            <p>        cp -r "$CONTEXT_PATH"/* "$SANDBOX_B/"</p>
+            <p>    fi</p>
+            <p>    trap 'rm -rf "$SANDBOX_A" "$SANDBOX_B"' EXIT</p>
+            <p>}</p>
+            <p>```</p>
+            <p>**2. Ralph-First with Graceful Fallback**</p>
+            <p>Check for Ralph availability and fall back to direct Claude if not present. This gives users the best experience when Ralph exists (proper planning, verification) without breaking for those without it:</p>
+            <p>```bash</p>
+            <p>run_implementation() {</p>
+            <p>    local sandbox="$1"</p>
+            <p>    local approach="$2"</p>
+            <p>    if command -v ralph &amp;&gt;/dev/null &amp;&amp; [[ -f "$sandbox/prd.json" || "$USE_RALPH" == "true" ]]; then</p>
+            <p>        # Use Ralph for structured implementation</p>
+            <p>        ralph implement --context "$sandbox" --task "$approach"</p>
+            <p>    else</p>
+            <p>        # Direct Claude fallback</p>
+            <p>        claude -p "Implement: $approach" --allowedTools Edit,Write,Bash --cwd "$sandbox"</p>
+            <p>    fi</p>
+            <p>}</p>
+            <p>```</p>
+            <p>**3. File-Based Diff for Judge (Works Without Git)**</p>
+            <p>Generate diffs by comparing sandbox state to original, not requiring git:</p>
+            <p>```bash</p>
+            <p>generate_diff() {</p>
+            <p>    local sandbox="$1"</p>
+            <p>    diff -rq "$CONTEXT_PATH" "$sandbox" 2&gt;/dev/null | head -50</p>
+            <p>    # Plus: cat new/modified files for judge inspection</p>
+            <p>}</p>
+            <p>```</p>
+            <p>### Addressing Opponent's Concerns</p>
+            <p>- **"Copies potentially large directories"**: The existing `--context` already limits to 10KB. We copy the same bounded content.</p>
+            <p>- **"Worktrees are nearly instant"**: True, but only when applicable. A copy of 10KB is also instant.</p>
+            <p>- **"Cleaner diff output"**: We can still run `git diff` *if* the sandbox happens to be a git repo, otherwise fall back to `diff -r`.</p>
+            <p>### Trade-offs</p>
+            <p>- Copies use more disk (mitigated by cleanup trap and size limits)</p>
+            <p>- No git history in sandbox (acceptable—judge cares about final implementation, not commit history)</p>
+            <p>- Slightly more code for fallback logic</p>
+            <p>This approach works for **any directory structure** while still leveraging Ralph when available.</p>
+    </div>
+    </div>
+    <div class="session-b">
+        <div class="session-header">Session B - Turn 4</div>
+        <div class="content">
+            <p>## Final Response: Refined Worktree Approach with Universal Fallback</p>
+            <p>I'll refine my approach to address the legitimate concern about non-git contexts while maintaining the advantages of git worktrees when available.</p>
+            <p>### Hybrid Strategy: Best Tool for Each Scenario</p>
+            <p>```bash</p>
+            <p>setup_implementation_environment() {</p>
+            <p>    local label="$1"  # "A" or "B"</p>
+            <p>    if [[ -n "$CONTEXT_PATH" ]]; then</p>
+            <p>        # Check if context is within a git repo</p>
+            <p>        local git_root</p>
+            <p>        git_root=$(cd "$CONTEXT_PATH" &amp;&amp; git rev-parse --show-toplevel 2&gt;/dev/null) || git_root=""</p>
+            <p>        if [[ -n "$git_root" ]]; then</p>
+            <p>            # Git available: use worktree for efficiency</p>
+            <p>            SANDBOX=$(mktemp -d)</p>
+            <p>            git -C "$git_root" worktree add -q "$SANDBOX/work" HEAD</p>
+            <p>            ENV_TYPE="worktree"</p>
+            <p>            ENV_GIT_ROOT="$git_root"</p>
+            <p>        else</p>
+            <p>            # No git: use copy</p>
+            <p>            SANDBOX=$(mktemp -d)</p>
+            <p>            cp -r "$CONTEXT_PATH"/* "$SANDBOX/" 2&gt;/dev/null || true</p>
+            <p>            ENV_TYPE="copy"</p>
+            <p>        fi</p>
+            <p>    else</p>
+            <p>        # No context: empty sandbox</p>
+            <p>        SANDBOX=$(mktemp -d)</p>
+            <p>        ENV_TYPE="empty"</p>
+            <p>    fi</p>
+            <p>    echo "$SANDBOX"</p>
+            <p>}</p>
+            <p>```</p>
+            <p>### Ralph Integration with Direct Claude Fallback</p>
+            <p>```bash</p>
+            <p>RALPH_AVAILABLE=$(command -v ralph &amp;&gt;/dev/null &amp;&amp; echo "true" || echo "false")</p>
+            <p>run_ralph_implementation() {</p>
+            <p>    local sandbox="$1"</p>
+            <p>    local task_description="$2"</p>
+            <p>    if [[ "$RALPH_AVAILABLE" == "true" ]]; then</p>
+            <p>        # Generate minimal PRD and run Ralph</p>
+            <p>        cat &gt; "$sandbox/prd.json" &lt;&lt;PRDJSON</p>
+            <p>{"title":"Implementation","stories":[{"id":"IMPL-1","description":"$task_description"}]}</p>
+            <p>PRDJSON</p>
+            <p>        (cd "$sandbox" &amp;&amp; ralph run --auto)</p>
+            <p>    else</p>
+            <p>        # Fallback: Claude with edit permissions</p>
+            <p>        claude -p "Implement this approach in the codebase: $task_description" \</p>
+            <p>            --allowedTools Edit,Write,Read,Glob,Grep,Bash \</p>
+            <p>            --cwd "$sandbox" \</p>
+            <p>            --max-turns 10</p>
+            <p>    fi</p>
+            <p>}</p>
+            <p>```</p>
+            <p>### Unified Diff Generation</p>
+            <p>```bash</p>
+            <p>capture_implementation_result() {</p>
+            <p>    local sandbox="$1"</p>
+            <p>    local env_type="$2"</p>
+            <p>    if [[ "$env_type" == "worktree" ]]; then</p>
+            <p>        git -C "$sandbox/work" diff HEAD --stat</p>
+            <p>        git -C "$sandbox/work" diff HEAD</p>
+            <p>    else</p>
+            <p>        # For copies: diff against original</p>
+            <p>        diff -ru "$CONTEXT_PATH" "$sandbox" 2&gt;/dev/null | head -200</p>
+            <p>    fi</p>
+            <p>}</p>
+            <p>```</p>
+            <p>### Key Differences from Opponent</p>
+            <p>| Aspect | My Approach | Opponent's |</p>
+            <p>|--------|-------------|------------|</p>
+            <p>| Git contexts | Worktree (instant, atomic) | Always copy |</p>
+            <p>| Non-git contexts | Copy fallback | Copy |</p>
+            <p>| Ralph missing | Claude direct fallback | Claude direct fallback |</p>
+            <p>| Diff method | Native git when available | Always `diff -r` |</p>
+            <p>### Acknowledged Trade-offs</p>
+            <p>- **More conditional logic**: Adds ~20 lines to detect git availability</p>
+            <p>- **Two code paths to maintain**: Worktree vs copy logic</p>
+            <p>- **Benefit**: Significantly faster for the common case (git repos), identical behavior for edge cases</p>
+            <p>The worktree approach gives better performance for the 90% case (code in git repos) while your copy approach handles the 10% edge case. My refinement handles both with the appropriate tool.</p>
+    </div>
+    </div>
+    <div class="session-a">
+        <div class="session-header">Session A - Turn 5</div>
+        <div class="content">
+            <p>## Final Response: Unified Copy-Based Approach with Optimizations</p>
+            <p>After this debate, I'll summarize my refined approach that prioritizes **simplicity and universal correctness** while addressing performance concerns.</p>
+            <p>### Core Philosophy: One Code Path, Well-Tested</p>
+            <p>The fundamental advantage of copy-based isolation is that it works identically for all contexts—git repos, plain directories, single files, or no context at all. This means:</p>
+            <p>1. **One implementation to test and maintain**</p>
+            <p>2. **Predictable behavior users can reason about**</p>
+            <p>3. **No git-specific edge cases** (submodules, worktree limits, dirty state, nested repos)</p>
+            <p>### Optimized Implementation</p>
+            <p>```bash</p>
+            <p>setup_sandbox() {</p>
+            <p>    local label="$1"</p>
+            <p>    local sandbox</p>
+            <p>    sandbox=$(mktemp -d "${TMPDIR:-/tmp}/debate_${label}_XXXXXX")</p>
+            <p>    if [[ -n "$CONTEXT_PATH" ]]; then</p>
+            <p>        if [[ -d "$CONTEXT_PATH" ]]; then</p>
+            <p>            # Use rsync for speed; exclude .git to save space/time</p>
+            <p>            rsync -a --exclude='.git' "$CONTEXT_PATH/" "$sandbox/"</p>
+            <p>        else</p>
+            <p>            cp "$CONTEXT_PATH" "$sandbox/"</p>
+            <p>        fi</p>
+            <p>    fi</p>
+            <p>    # Initialize fresh git for clean diff tracking</p>
+            <p>    git -C "$sandbox" init -q</p>
+            <p>    git -C "$sandbox" add -A</p>
+            <p>    git -C "$sandbox" commit -q -m "baseline" --allow-empty</p>
+            <p>    echo "$sandbox"</p>
+            <p>}</p>
+            <p>```</p>
+            <p>### Ralph Integration with Graceful Fallback</p>
+            <p>```bash</p>
+            <p>implement_approach() {</p>
+            <p>    local sandbox="$1"</p>
+            <p>    local approach_description="$2"</p>
+            <p>    if command -v ralph &amp;&gt;/dev/null; then</p>
+            <p>        generate_prd "$sandbox" "$approach_description"</p>
+            <p>        (cd "$sandbox" &amp;&amp; timeout 120 ralph run --auto 2&gt;&amp;1) || true</p>
+            <p>    else</p>
+            <p>        claude -p "Implement: $approach_description" \</p>
+            <p>            --allowedTools Edit,Write,Read,Bash \</p>
+            <p>            --cwd "$sandbox" \</p>
+            <p>            --max-turns 8</p>
+            <p>    fi</p>
+            <p>    # Capture diff regardless of method</p>
+            <p>    git -C "$sandbox" diff HEAD</p>
+            <p>}</p>
+            <p>```</p>
+            <p>### Addressing the Worktree Argument</p>
+            <p>| Concern | My Response |</p>
+            <p>|---------|-------------|</p>
+            <p>| "Worktrees are faster" | `rsync --exclude='.git'` is fast; the copy happens once, implementation takes longer |</p>
+            <p>| "Git diff is cleaner" | My approach uses git too—after initializing a fresh repo in the sandbox |</p>
+            <p>| "90% are git repos" | But 100% work with copy; complexity cost isn't worth the marginal speedup |</p>
+            <p>### Trade-offs I Accept</p>
+            <p>- **Disk usage**: Two full copies vs. worktree's shared objects (mitigated by excluding .git)</p>
+            <p>- **Initial setup time**: ~1-2 seconds for typical codebases (negligible vs. implementation time)</p>
+            <p>### What I Gain</p>
+            <p>- **Zero git edge cases**: No worktree cleanup failures, no submodule issues, no "too many worktrees"</p>
+            <p>- **Works everywhere**: Plain directories, downloaded zips, single files</p>
+            <p>- **Simpler mental model**: "Each debater gets an isolated copy"</p>
+            <p>The worktree optimization adds real complexity for marginal benefit. Ship the simple version first; optimize later if profiling shows copy time is actually a bottleneck (it won't be).</p>
+    </div>
+    </div>
+    <p class="ended-note">Debate ended: round limit</p>
+    <div class="verdict">
+        <h2>Judge's Verdict</h2>
+        <div class="content">
+            <p>Now I can provide a thorough evaluation based on the actual codebase context.</p>
+            <p>## Approach Summaries</p>
+            <p>**Session A**: Proposes a unified copy-based sandbox approach that creates temporary directories for each debater, initializes fresh git repos for clean diff tracking, and uses Ralph with graceful fallback to direct Claude implementation. Prioritizes simplicity with a single code path that works universally across all context types (git repos, plain directories, single files).</p>
+            <p>**Session B**: Proposes a hybrid strategy that detects whether the context is a git repository and uses git worktrees when available (for performance), falling back to directory copies for non-git contexts. Also includes Ralph-first with Claude fallback, but maintains two distinct code paths optimized for different scenarios.</p>
+            <p>## Engineering Evaluation</p>
+            <p>| Criterion | Session A | Session B |</p>
+            <p>|-----------|-----------|-----------|</p>
+            <p>| **Simplicity** | **Strong** - Single code path, no conditional branching based on git availability. Easy to understand and reason about. | **Adequate** - Two code paths (worktree vs copy) add conditional complexity. More mental overhead for maintainers. |</p>
+            <p>| **Maintainability** | **Strong** - One implementation to test and maintain. Changes apply uniformly. | **Adequate** - Two paths means bugs can hide in the less-common path. Changes may need duplication. |</p>
+            <p>| **Testability** | **Strong** - One path to test. Fresh git init in sandbox provides consistent diffing. | **Adequate** - Need separate test cases for worktree and copy paths. |</p>
+            <p>| **Performance** | **Adequate** - rsync with --exclude='.git' is fast. Fresh git init adds small overhead but negligible vs. implementation time. | **Strong** - Worktrees are genuinely faster for large repos with git. Near-instant regardless of repo size. |</p>
+            <p>| **Extensibility** | **Strong** - Adding features (e.g., new isolation strategies) is straightforward in one place. | **Adequate** - New features may need implementation in both paths. |</p>
+            <p>## Risk Analysis</p>
+            <p>**Session A risks**:</p>
+            <p>- Edge cases handled: Non-git directories, single files, empty contexts, large directories (rsync is efficient), .git exclusion to save space/time</p>
+            <p>- Edge cases missed: Very large directories (10KB limit from existing `--context` mitigates this), potential rsync unavailability on some systems (could fall back to cp)</p>
+            <p>- Potential failure modes: git init failure in sandbox (rare), rsync not installed (use cp fallback), Ralph timeout (handled with `timeout 120`)</p>
+            <p>**Session B risks**:</p>
+            <p>- Edge cases handled: Git vs non-git detection, Ralph unavailability fallback, worktree cleanup</p>
+            <p>- Edge cases missed: Git submodules may behave unexpectedly with worktrees, worktree limits (git has a practical limit), detached HEAD states, dirty working trees affecting worktree creation, nested git repos</p>
+            <p>- Potential failure modes: Worktree creation failure (partial cleanup needed), worktree removal failure on exit (dangling worktrees), git rev-parse failures in unusual repo states</p>
+            <p>## Verdict</p>
+            <p>**RECOMMENDED: Session A**</p>
+            <p>**Key reasons** (top 3):</p>
+            <p>1. **Single code path is dramatically simpler to maintain**: The existing codebase shows clear preference for straightforward bash scripting. Adding two conditional paths (worktree vs copy) doubles the testing surface and introduces subtle bugs that only appear in edge cases.</p>
+            <p>2. **Universal compatibility aligns with existing `--context` design**: The current `read_context()` function already handles any path type (files, directories). Session A's approach extends this philosophy—it works for `--context ./src`, `--context ./single-file.py`, or non-git directories without special-casing.</p>
+            <p>3. **Performance difference is negligible for real usage**: The actual implementation phase (Ralph or Claude writing code) takes 1-2 minutes. Saving 1-2 seconds on setup by using worktrees instead of rsync is imperceptible. Session A's point about "optimize later if profiling shows copy time is actually a bottleneck" is the correct engineering approach.</p>
+            <p>## Implementation Roadmap</p>
+            <p>To implement the winning approach:</p>
+            <p>1. **Start with**: Modify `code-debate.sh` argument parsing to add `--ralph` flag (lines 17-57)</p>
+            <p>2. **Core implementation**: Add these new functions after `read_context()` (around line 179):</p>
+            <p>   - `setup_sandbox()` - Creates isolated temp directory with context copy</p>
+            <p>   - `implement_approach()` - Runs Ralph or Claude fallback</p>
+            <p>   - `capture_diff()` - Gets git diff of implementation</p>
+            <p>   - `cleanup_sandboxes()` - Trap handler for cleanup</p>
+            <p>3. **Data flow**:</p>
+            <p>   - Parse `--ralph` flag → set `RALPH_MODE=true`</p>
+            <p>   - In main loop, if `RALPH_MODE`: call `setup_sandbox()` before each turn</p>
+            <p>   - Replace `run_turn()` with `run_ralph_turn()` that generates PRD and implements</p>
+            <p>   - Capture implementation diff and pass to judge</p>
+            <p>   - Judge prompt receives actual code diffs instead of theoretical proposals</p>
+            <p>4. **Testing strategy**:</p>
+            <p>   - Test with git repo context</p>
+            <p>   - Test with plain directory context</p>
+            <p>   - Test with single file context</p>
+            <p>   - Test with no context</p>
+            <p>   - Test Ralph available vs. not available</p>
+            <p>   - Test implementation timeout handling</p>
+            <p>5. **Gotchas to watch**:</p>
+            <p>   - Ensure trap cleanup runs even on error (`trap 'cleanup_sandboxes' EXIT`)</p>
+            <p>   - Use `rsync -a` with `--exclude='.git'` for speed</p>
+            <p>   - Initialize fresh git in sandbox *after* copying for clean baseline</p>
+            <p>   - Pass `--cwd` to Claude for correct working directory</p>
+            <p>   - Handle Ralph not being installed gracefully</p>
+            <p>**Suggested file structure**:</p>
+            <p>```</p>
+            <p>code-debate.sh          # Main script (modified)</p>
+            <p>├── New functions:</p>
+            <p>│   ├── setup_sandbox()</p>
+            <p>│   ├── implement_approach()</p>
+            <p>│   ├── capture_diff()</p>
+            <p>│   ├── cleanup_sandboxes()</p>
+            <p>│   └── run_ralph_turn()</p>
+            <p>└── Modified:</p>
+            <p>    ├── Argument parsing (+--ralph flag)</p>
+            <p>    ├── Main loop (conditional path for ralph mode)</p>
+            <p>    └── Judge prompt (include implementation diffs)</p>
+            <p>```</p>
+            <p>**Key code patterns to use**:</p>
+            <p>```bash</p>
+            <p># Argument parsing addition (after line 46)</p>
+            <p>--ralph)</p>
+            <p>    RALPH_MODE=true</p>
+            <p>    shift</p>
+            <p>    ;;</p>
+            <p># Sandbox setup</p>
+            <p>setup_sandbox() {</p>
+            <p>    local label="$1"</p>
+            <p>    local sandbox</p>
+            <p>    sandbox=$(mktemp -d "${TMPDIR:-/tmp}/debate_${label}_XXXXXX")</p>
+            <p>    if [[ -n "$CONTEXT_PATH" ]]; then</p>
+            <p>        if command -v rsync &amp;&gt;/dev/null; then</p>
+            <p>            rsync -a --exclude='.git' "$CONTEXT_PATH/" "$sandbox/"</p>
+            <p>        else</p>
+            <p>            cp -r "$CONTEXT_PATH"/* "$sandbox/" 2&gt;/dev/null || true</p>
+            <p>        fi</p>
+            <p>    fi</p>
+            <p>    # Initialize fresh git for clean diff tracking</p>
+            <p>    git -C "$sandbox" init -q</p>
+            <p>    git -C "$sandbox" add -A</p>
+            <p>    git -C "$sandbox" commit -q -m "baseline" --allow-empty</p>
+            <p>    echo "$sandbox"</p>
+            <p>}</p>
+            <p># Implementation with Ralph fallback</p>
+            <p>implement_approach() {</p>
+            <p>    local sandbox="$1"</p>
+            <p>    local approach_description="$2"</p>
+            <p>    if command -v ralph &amp;&gt;/dev/null; then</p>
+            <p>        # Generate PRD and run Ralph</p>
+            <p>        cat &gt; "$sandbox/prd.json" &lt;&lt;PRDJSON</p>
+            <p>{"title":"Implementation","stories":[{"id":"IMPL-1","description":"$approach_description"}]}</p>
+            <p>PRDJSON</p>
+            <p>        (cd "$sandbox" &amp;&amp; timeout 120 ralph run --auto 2&gt;&amp;1) || true</p>
+            <p>    else</p>
+            <p>        # Fallback: Claude with edit permissions</p>
+            <p>        claude -p "Implement: $approach_description" \</p>
+            <p>            --allowedTools Edit,Write,Read,Bash \</p>
+            <p>            --cwd "$sandbox" \</p>
+            <p>            --max-turns 8</p>
+            <p>    fi</p>
+            <p>    # Capture diff regardless of method</p>
+            <p>    git -C "$sandbox" diff HEAD</p>
+            <p>}</p>
+            <p># Cleanup trap</p>
+            <p>cleanup_sandboxes() {</p>
+            <p>    [[ -n "$SANDBOX_A" ]] &amp;&amp; rm -rf "$SANDBOX_A"</p>
+            <p>    [[ -n "$SANDBOX_B" ]] &amp;&amp; rm -rf "$SANDBOX_B"</p>
+            <p>}</p>
+            <p>```</p>
+            <p>---</p>
+            <p>The developer can start coding immediately by adding the `--ralph` flag parsing, then implementing `setup_sandbox()` and `implement_approach()` functions. The existing loop structure in `code-debate.sh` (lines 307-327) can be extended with a conditional branch for ralph mode without major restructuring.</p>
+        </div>
+    </div>
+</body>
+</html>

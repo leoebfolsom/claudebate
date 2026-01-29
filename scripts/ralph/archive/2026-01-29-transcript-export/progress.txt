@@ -1,0 +1,79 @@
+# Ralph Progress Log
+Started: Wed Jan 28 11:00:53 PST 2026
+---
+
+## Codebase Patterns
+- EXPORT_FORMAT variable stores export preference (md, html, or md,html)
+- Usage message format: aligned options with descriptions
+- debate.sh parses flags with while/case pattern, use shift 2 for flags with values
+- Transcript format: header (=== DEBATE:), metadata (Started:, Limits:), turns (--- Session X - Turn N ---), verdict (=== JUDGE'S VERDICT ===)
+- Export functions placed near end of debate.sh, before final echo statements
+- Shared functions extracted to export_functions.sh and sourced by both debate.sh and export.sh
+
+---
+
+## 2026-01-28 - US-001
+- Implemented --export flag in debate.sh argument parser
+- Added EXPORT_FORMAT variable to store export preference
+- Updated usage message with new flag documentation
+- Fixed header comment to reference correct script name (debate.sh not orchestrate.sh)
+- Files changed: debate.sh
+- **Learnings for future iterations:**
+  - Argument parsing uses while/case pattern with shift 2 for flags with values
+  - Usage message follows aligned format with option descriptions
+  - EXPORT_FORMAT can be empty (no export), "md", "html", or "md,html"
+---
+
+## 2026-01-28 - US-002
+- Implemented export_to_md() function in debate.sh
+- Function extracts topic, date, limits, and total turns from transcript header
+- Uses awk to process content: converts session headers to H2, verdict header to H2, arguments to blockquotes
+- Outputs to same directory with .md extension (replaces .txt)
+- Files changed: debate.sh
+- **Learnings for future iterations:**
+  - Transcript parsing: grep -m1 "^pattern" with sed substitution to extract metadata
+  - Use awk for multi-line processing: gsub() for regex replace, next to skip patterns
+  - Single quotes in awk within bash: use '\'' escape sequence (close quote, escape quote, open quote)
+  - NF > 0 in awk checks if line has non-whitespace content
+---
+
+## 2026-01-28 - US-003
+- Implemented export_to_html() function in debate.sh
+- Function produces self-contained HTML with inline CSS (no external dependencies)
+- Color-coded sections: blue (#3498db) for Session A, orange (#e67e22) for Session B
+- Green-styled verdict section (#27ae60)
+- HTML escapes special characters (&, <, >) in content
+- Metadata section includes topic, date, limits, and total turns
+- Files changed: debate.sh
+- **Learnings for future iterations:**
+  - Use heredoc with 'HTMLHEAD' (quoted) to prevent variable expansion in HTML template
+  - Awk state machine pattern: track in_section/in_verdict flags to handle open/close tags
+  - HTML character escaping order matters: do & first, then < and >
+  - CSS styling uses -apple-system, BlinkMacSystemFont for native font rendering
+---
+
+## 2026-01-28 - US-004
+- Implemented auto-export logic after judge verdict is written
+- Checks EXPORT_FORMAT variable and calls appropriate export functions
+- Uses glob pattern matching (*"md"*, *"html"*) to detect format in comma-separated values
+- Prints confirmation message with path to each exported file
+- Files changed: debate.sh
+- **Learnings for future iterations:**
+  - Bash glob pattern matching: [[ "$var" == *"pattern"* ]] works for substring matching
+  - Export functions return the path to created file via echo, capture with $()
+  - Auto-export code placed after verdict echo, before final "Debate complete" message
+---
+
+## 2026-01-28 - US-005
+- Created standalone export.sh script for exporting existing transcripts
+- Extracted export functions from debate.sh into shared export_functions.sh
+- Updated debate.sh to source the shared functions file
+- Added validation for file existence and transcript format check
+- Format validation accepts: md, html, or both
+- Files changed: debate.sh, export.sh (new), export_functions.sh (new)
+- **Learnings for future iterations:**
+  - Use `source "$SCRIPT_DIR/file.sh"` to share functions between scripts
+  - Validate transcripts by checking for "=== DEBATE:" header with grep -q
+  - Case statement works well for validating enum-like format values
+  - Convert relative paths to absolute with `$(pwd)/$var` before passing to functions
+---

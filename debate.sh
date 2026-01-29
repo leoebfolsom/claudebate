@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# This file is part of the Claudebate project
+
 # Claude Code Debate System
 # Usage: ./debate.sh "topic" [--rounds N] [--time Nm] [--export FORMAT]
 
