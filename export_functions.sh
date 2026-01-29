@@ -3,6 +3,154 @@
 # Shared export functions for claudebate
 # These functions can be sourced by debate.sh and export.sh
 
+# Convert markdown code blocks to HTML pre/code tags
+# Uses AWK state machine to track in_code_block state
+# Usage: echo "$content" | convert_code_blocks
+convert_code_blocks() {
+    awk '
+        BEGIN {
+            in_code_block = 0
+            code_lang = ""
+        }
+        /^```/ {
+            if (in_code_block == 0) {
+                # Opening code block - extract language if present
+                in_code_block = 1
+                code_lang = $0
+                gsub(/^```/, "", code_lang)
+                gsub(/[[:space:]].*$/, "", code_lang)  # Remove anything after language
+                if (code_lang != "") {
+                    print "<pre><code class=\"language-" code_lang "\">"
+                } else {
+                    print "<pre><code>"
+                }
+                next
+            } else {
+                # Closing code block
+                in_code_block = 0
+                code_lang = ""
+                print "</code></pre>"
+                next
+            }
+        }
+        {
+            if (in_code_block) {
+                # HTML-escape content inside code blocks
+                gsub(/&/, "\\&amp;")
+                gsub(/</, "\\&lt;")
+                gsub(/>/, "\\&gt;")
+            }
+            print
+        }
+        END {
+            # Handle unclosed code blocks gracefully
+            if (in_code_block) {
+                print "</code></pre>"
+            }
+        }
+    '
+}
+
+# Convert markdown headers to HTML h1-h6 tags
+# Uses sed -E for extended regex (macOS compatible)
+# Process from longest pattern to shortest to avoid partial matches
+# Usage: echo "$content" | convert_headers
+convert_headers() {
+    sed -E \
+        -e 's/^###### (.*)$/<h6>\1<\/h6>/' \
+        -e 's/^##### (.*)$/<h5>\1<\/h5>/' \
+        -e 's/^#### (.*)$/<h4>\1<\/h4>/' \
+        -e 's/^### (.*)$/<h3>\1<\/h3>/' \
+        -e 's/^## (.*)$/<h2>\1<\/h2>/' \
+        -e 's/^# (.*)$/<h1>\1<\/h1>/'
+}
+
+# Convert markdown bold/italic to HTML strong/em tags
+# Skips lines that are already HTML tags (pre, code, h1-h6)
+# Tracks code block state to skip content inside code blocks
+# HTML-escapes non-tag lines before converting
+# Usage: echo "$content" | convert_inline_formatting
+convert_inline_formatting() {
+    awk '
+        BEGIN {
+            in_code_block = 0
+        }
+        {
+            # Track code block state
+            if (/^<pre><code/) {
+                in_code_block = 1
+                print
+                next
+            }
+            if (/^<\/code><\/pre>/) {
+                in_code_block = 0
+                print
+                next
+            }
+
+            # Skip content inside code blocks (already HTML-escaped by convert_code_blocks)
+            if (in_code_block) {
+                print
+                next
+            }
+
+            # Skip lines that are already HTML tags (h1-h6)
+            if (/^<h[1-6]>/ || /^<\/h[1-6]>/) {
+                print
+                next
+            }
+
+            line = $0
+
+            # HTML-escape non-tag lines (& first, then < and >)
+            gsub(/&/, "\\&amp;", line)
+            gsub(/</, "\\&lt;", line)
+            gsub(/>/, "\\&gt;", line)
+
+            # Convert **text** to <strong>text</strong> (process before single *)
+            while (match(line, /\*\*[^*]+\*\*/)) {
+                before = substr(line, 1, RSTART - 1)
+                matched = substr(line, RSTART + 2, RLENGTH - 4)
+                after = substr(line, RSTART + RLENGTH)
+                line = before "<strong>" matched "</strong>" after
+            }
+
+            # Convert __text__ to <strong>text</strong>
+            while (match(line, /__[^_]+__/)) {
+                before = substr(line, 1, RSTART - 1)
+                matched = substr(line, RSTART + 2, RLENGTH - 4)
+                after = substr(line, RSTART + RLENGTH)
+                line = before "<strong>" matched "</strong>" after
+            }
+
+            # Convert *text* to <em>text</em> (avoid matching ** which is already converted)
+            while (match(line, /\*[^*]+\*/)) {
+                before = substr(line, 1, RSTART - 1)
+                matched = substr(line, RSTART + 1, RLENGTH - 2)
+                after = substr(line, RSTART + RLENGTH)
+                line = before "<em>" matched "</em>" after
+            }
+
+            # Convert _text_ to <em>text</em> (avoid matching __ which is already converted)
+            while (match(line, /_[^_]+_/)) {
+                before = substr(line, 1, RSTART - 1)
+                matched = substr(line, RSTART + 1, RLENGTH - 2)
+                after = substr(line, RSTART + RLENGTH)
+                line = before "<em>" matched "</em>" after
+            }
+
+            print line
+        }
+    '
+}
+
+# Process markdown content through the full conversion pipeline
+# Composes: convert_code_blocks | convert_headers | convert_inline_formatting
+# Usage: echo "$content" | process_markdown_content
+process_markdown_content() {
+    convert_code_blocks | convert_headers | convert_inline_formatting
+}
+
 export_to_md() {
     local transcript_path="$1"
     local md_path="${transcript_path%.txt}.md"
@@ -182,6 +330,69 @@ export_to_html() {
             font-style: italic;
             margin: 20px 0;
         }
+        /* Code block styling */
+        pre {
+            background-color: #2c3e50;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        pre code {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+            font-size: 0.9em;
+            color: #ecf0f1;
+            line-height: 1.4;
+        }
+        code {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+            background-color: #ecf0f1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #c0392b;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: #ecf0f1;
+        }
+        /* Header styling */
+        h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #bdc3c7;
+            padding-bottom: 8px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 20px;
+            margin-bottom: 12px;
+        }
+        h4 {
+            color: #34495e;
+            margin-top: 18px;
+            margin-bottom: 10px;
+        }
+        h5 {
+            color: #7f8c8d;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+        h6 {
+            color: #95a5a6;
+            margin-top: 12px;
+            margin-bottom: 6px;
+            font-size: 0.95em;
+        }
+        /* Inline formatting */
+        strong {
+            color: #2c3e50;
+        }
+        em {
+            color: #34495e;
+        }
     </style>
 </head>
 <body>
@@ -196,13 +407,28 @@ HTMLHEAD
         echo "    </div>"
 
         # Process the transcript content with awk
+        # First pass: extract sections and content markers
+        # Second pass: process content through markdown pipeline
         echo "$content" | awk '
             BEGIN {
                 in_section = 0
                 section_type = ""
                 in_verdict = 0
+                content_buffer = ""
             }
+
+            function flush_content() {
+                if (content_buffer != "") {
+                    # Output marker for content that needs markdown processing
+                    print "___CONTENT_START___"
+                    print content_buffer
+                    print "___CONTENT_END___"
+                    content_buffer = ""
+                }
+            }
+
             /^--- Session A/ {
+                flush_content()
                 if (in_section) {
                     print "    </div>"
                     print "    </div>"
@@ -219,6 +445,7 @@ HTMLHEAD
                 next
             }
             /^--- Session B/ {
+                flush_content()
                 if (in_section) {
                     print "    </div>"
                     print "    </div>"
@@ -235,6 +462,7 @@ HTMLHEAD
                 next
             }
             /^=== JUDGE'\''S VERDICT ===/ {
+                flush_content()
                 if (in_section) {
                     print "    </div>"
                     print "    </div>"
@@ -251,6 +479,7 @@ HTMLHEAD
                 next
             }
             /^=== DEBATE ENDED/ {
+                flush_content()
                 if (in_section) {
                     print "    </div>"
                     print "    </div>"
@@ -264,22 +493,59 @@ HTMLHEAD
                 next
             }
             {
-                # Print regular content as paragraphs (if not empty)
-                if (NF > 0) {
-                    # Escape HTML special characters
-                    gsub(/&/, "\\&amp;", $0)
-                    gsub(/</, "\\&lt;", $0)
-                    gsub(/>/, "\\&gt;", $0)
-                    print "            <p>" $0 "</p>"
+                # Accumulate content lines (preserve empty lines)
+                if (in_section || in_verdict) {
+                    if (content_buffer != "") {
+                        content_buffer = content_buffer "\n" $0
+                    } else {
+                        content_buffer = $0
+                    }
                 }
             }
             END {
+                flush_content()
                 if (in_section || in_verdict) {
                     print "        </div>"
                     print "    </div>"
                 }
             }
-        '
+        ' | while IFS= read -r line; do
+            if [[ "$line" == "___CONTENT_START___" ]]; then
+                # Read content until END marker and process through pipeline
+                content_block=""
+                while IFS= read -r content_line && [[ "$content_line" != "___CONTENT_END___" ]]; do
+                    if [[ -n "$content_block" ]]; then
+                        content_block="$content_block"$'\n'"$content_line"
+                    else
+                        content_block="$content_line"
+                    fi
+                done
+                # Process content through markdown pipeline and wrap in paragraphs
+                in_code_block=false
+                echo "$content_block" | process_markdown_content | while IFS= read -r processed_line; do
+                    # Track code block state
+                    if [[ "$processed_line" =~ ^'<pre><code' ]]; then
+                        in_code_block=true
+                        echo "            $processed_line"
+                    elif [[ "$processed_line" == "</code></pre>" ]]; then
+                        in_code_block=false
+                        echo "            $processed_line"
+                    elif [[ "$in_code_block" == "true" ]]; then
+                        # Inside code block - output raw (already HTML-escaped)
+                        echo "$processed_line"
+                    elif [[ -n "$processed_line" ]]; then
+                        # Check if line is already an HTML block element
+                        if [[ "$processed_line" =~ ^'<'(h[1-6]|/h[1-6]) ]]; then
+                            echo "            $processed_line"
+                        else
+                            echo "            <p>$processed_line</p>"
+                        fi
+                    fi
+                done
+            else
+                echo "$line"
+            fi
+        done
 
         echo "</body>"
         echo "</html>"
