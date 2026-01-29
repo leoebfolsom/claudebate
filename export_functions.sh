@@ -307,6 +307,69 @@ export_to_html() {
             font-style: italic;
             margin: 20px 0;
         }
+        /* Code block styling */
+        pre {
+            background-color: #2c3e50;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        pre code {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+            font-size: 0.9em;
+            color: #ecf0f1;
+            line-height: 1.4;
+        }
+        code {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+            background-color: #ecf0f1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #c0392b;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: #ecf0f1;
+        }
+        /* Header styling */
+        h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #bdc3c7;
+            padding-bottom: 8px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 20px;
+            margin-bottom: 12px;
+        }
+        h4 {
+            color: #34495e;
+            margin-top: 18px;
+            margin-bottom: 10px;
+        }
+        h5 {
+            color: #7f8c8d;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+        h6 {
+            color: #95a5a6;
+            margin-top: 12px;
+            margin-bottom: 6px;
+            font-size: 0.95em;
+        }
+        /* Inline formatting */
+        strong {
+            color: #2c3e50;
+        }
+        em {
+            color: #34495e;
+        }
     </style>
 </head>
 <body>
