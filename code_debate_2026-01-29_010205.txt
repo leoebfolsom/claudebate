@@ -1,6 +1,0 @@
-=== CODE DEBATE: test ===
-Started: Thu Jan 29 01:02:05 PST 2026
-Limits: 10 rounds, 5m 0s
-Context: /tmp/test_context
-==========================================
-

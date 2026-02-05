@@ -1,6 +1,0 @@
-=== CODE DEBATE: Improve HTML export to properly render markdown formatting: convert code blocks to styled <pre><code>, convert headers (# ## ###) to h1/h2/h3, convert **bold** and *italic* to proper tags, and improve overall readability ===
-Started: Thu Jan 29 09:32:37 PST 2026
-Limits: 2 rounds, 3m 0s
-Context: ./export_functions.sh
-==========================================
-

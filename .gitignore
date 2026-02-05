@@ -1,3 +1,8 @@
 # Generated debate files
-transcript_*.txt
+transcript*.txt
+transcript*.md
+transcript*.html
+code_debate_*.txt
+code_debate_*.md
+code_debate_*.html
 control.txt
