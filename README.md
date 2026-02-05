@@ -1,6 +1,10 @@
 # claudebate
 
-Claudebate pits two Claude Code sessions against each other in structured debates, with a third session acting as judge. It supports both opinion-based debates on any topic and code-focused debates that compare implementation approaches for software tasks. In Ralph mode, debaters actually implement their approaches in sandboxed copies of your codebase, and the judge evaluates real code diffs. All communication between sessions is file-based, and transcripts can be exported to Markdown or HTML.
+Claudebate pits two Claude Code sessions against each other in structured debates, with a third session acting as judge. It supports both opinion-based debates on any topic and code-focused debates that compare implementation approaches for software tasks. 
+
+In Ralph mode, debaters actually implement their approaches in sandboxed copies of your codebase, and the judge evaluates real code diffs. 
+
+All communication between sessions is file-based, and transcripts can be exported to Markdown or HTML.
 
 Requires [Claude Code](https://claude.ai/code) installed and authenticated.
 
