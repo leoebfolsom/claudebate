@@ -1,10 +1,8 @@
 # claudebate
 
-Automated debates between two Claude Code sessions using file-based communication, with a third Claude Code session as the Judge.
+Claudebate pits two Claude Code sessions against each other in structured debates, with a third session acting as judge. It supports both opinion-based debates on any topic and code-focused debates that compare implementation approaches for software tasks. In Ralph mode, debaters actually implement their approaches in sandboxed copies of your codebase, and the judge evaluates real code diffs. All communication between sessions is file-based, and transcripts can be exported to Markdown or HTML.
 
-## Prerequisites
-
-- [Claude Code](https://claude.ai/code) installed and authenticated
+Requires [Claude Code](https://claude.ai/code) installed and authenticated.
 
 ## Quick Start
 
@@ -99,6 +97,17 @@ Use `code-debate.sh` to explore implementation approaches for software tasks thr
 | `--export FORMAT` | Export transcript (`md`, `html`, or `md,html`) | none |
 | `--context PATH` | File or directory for codebase context | none |
 | `--ralph` | Enable implementation mode (see below) | off |
+| `--auto`, `-y` | Skip confirmation prompt, use suggested settings automatically | off |
+
+### Smart Configuration
+
+When you don't provide explicit `--rounds`, `--time`, or `--ralph` flags, `code-debate.sh` automatically triages your task using Claude and suggests settings based on complexity:
+
+- **Simple** tasks (typos, renames, config changes): 1-2 rounds, 2m, no ralph
+- **Moderate** tasks (small features, single-function refactors): 2-3 rounds, 3m, no ralph
+- **Complex** tasks (new features, architectural changes): 3-5 rounds, 5m, considers ralph
+
+You'll see the suggested configuration and can confirm, cancel, or adjust before the debate starts. Use `--auto` or `-y` to skip the confirmation prompt.
 
 ### The --context Flag
 
