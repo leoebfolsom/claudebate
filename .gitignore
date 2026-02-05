@@ -5,4 +5,5 @@ transcript*.html
 code_debate_*.txt
 code_debate_*.md
 code_debate_*.html
+*.log
 control.txt
